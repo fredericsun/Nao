@@ -775,7 +775,7 @@ if __name__ == "__main__":
     answer = []
     handoff_question = []
     handoff_answer = []
-    question_tree = ET.parse('interaction.xml')
+    question_tree = ET.parse('handoff_questions.xml')
     quesiton_root = question_tree.getroot()
     for pair in quesiton_root.iterfind('pair'):
         question = []
@@ -791,7 +791,7 @@ if __name__ == "__main__":
 #xml parser
     interaction = []
     transition = []
-    tree = ET.parse('good_delivery.xml')
+    tree = ET.parse('interaction.xml')
     root = tree.getroot()
 
     #get group number
