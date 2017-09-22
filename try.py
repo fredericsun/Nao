@@ -16,6 +16,9 @@ class Nao(object):
     name = ""
     def __init__(self, name):
         self.name = name
+        listening = ALProxy("ALAutonomousMoves", IP, PORT)
+        listening.setExpressiveListeningEnabled(False)
+
 
     def getName(self):
         return self.name
@@ -59,12 +62,14 @@ class Nao(object):
         tracker.unregisterAllTargets()
 
     def greet(self):
-        greet = ALProxy("ALAnimatedSpeech", IP, PORT)
-        motionProxy = ALProxy("ALMotion", IP, PORT)
-        postureProxy = ALProxy("ALRobotPosture", IP, PORT)
-        motionProxy.wakeUp()
-        postureProxy.goToPosture("Stand", 0.5)
-        greet.say("Hello. ^start(animations/Stand/Gestures/Hey_1) My name is Nao. Nice to meet you! ^wait(animations/Stand/Gestures/Hey_1)")
+        #greet = ALProxy("ALAnimatedSpeech", IP, PORT)
+        greet = ALProxy("ALTextToSpeech", IP, PORT)
+        #motionProxy = ALProxy("ALMotion", IP, PORT)
+        #postureProxy = ALProxy("ALRobotPosture", IP, PORT)
+        #motionProxy.wakeUp()
+        #postureProxy.goToPosture("Stand", 0.5)
+        #greet.say("Hello. ^start(animations/Stand/Gestures/Hey_1) My name is Nao. Nice to meet you! ^wait(animations/Stand/Gestures/Hey_1)")
+        greet.say("Hello. I'm here to make a delivery.")
 
     def farewell(self):
         farewell = ALProxy("ALTextToSpeech", IP, PORT)
@@ -913,12 +918,14 @@ if __name__ == "__main__":
 
         if key == False:
             loop = False
-        '''
+
+    print "done"
+    '''
                 elif "else" in target[i]:
                     else_group = i
             if else_group is not None:
                 currGroup = else_group
-        '''
+    '''
 
 '''
         j = 1
