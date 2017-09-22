@@ -775,7 +775,7 @@ if __name__ == "__main__":
     answer = []
     handoff_question = []
     handoff_answer = []
-    question_tree = ET.parse('handoff_questions.xml')
+    question_tree = ET.parse('interaction.xml')
     quesiton_root = question_tree.getroot()
     for pair in quesiton_root.iterfind('pair'):
         question = []
