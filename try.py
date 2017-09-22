@@ -214,7 +214,7 @@ class Greeter:
             if newState == "Waiting_Silent_Present" or "Waiting_Silent_Ignored":
                 speech = self.robot.speechRecognition(wait_time)
                 print speech
-                if speech == "Nice to meet you":
+                if speech != "":
                     newState = "Silent_ReturnedGreeting_End"
                     print newState + "\n"
                     output = "human_ready"
