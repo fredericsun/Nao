@@ -814,13 +814,13 @@ if __name__ == "__main__":
     while groupid <= group_num:
         for elem in root[groupid].iterfind('micro'):
             name = elem.find('name')
-            if name.text == "greeter":
+            if name.text == "Greeter":
                 greeter = Greeter(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(greeter)
-            if name.text == "farewell":
+            if name.text == "Farewell":
                 farewell = Farewell(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(farewell)
-            if name.text == "QuestionAnswer":
+            if name.text == "Questioning":
                 for para in elem.iterfind('parameter'):
                     for word in para.iterfind('item'):
                         wordList.append(word.attrib['val'])
@@ -846,13 +846,13 @@ if __name__ == "__main__":
                         speechList.append(para.attrib['val'])
                 comment = Comment(robot, groupid, microid, speechList, speech_token)
                 interaction[groupid - 1].append(comment)
-            if name.text == "inst_action":
+            if name.text == "Inst_Action":
                 for para in elem.iterfind('parameter'):
                     if para.text == "Instruction":
                         Instruction.append(para.attrib['val'])
                 instruct = Instruct(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(instruct)
-            if name.text == "AnswerQuestion":
+            if name.text == "Answering":
                 answer = Answer(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(answer)
             microid += 1
