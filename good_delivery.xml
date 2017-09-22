@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nta>
+	<name>good_delivery</name>
+
+	<group id="0" init="true">
+		<name>Start</name>
+		<micro>
+			<name>greeter</name>
+		</micro>
+	</group>
+
+	<group id="1" init="false">
+		<name>Authenticate</name>
+		<micro>
+			<name>QuestionAnswer</name>
+			<parameter type="array">
+				<name>answers</name>
+				<item type="string" val="Yes"/>
+				<item type="string" val="No"/>
+			</parameter>
+			<parameter type="str" val="Do you have freestyle">question</parameter>
+		</micro>
+	</group>
+
+	<group id="2" init="false">
+		<name>Give</name>
+		<micro>
+			<name>Handoff</name>
+			<parameter type="nominal" val="give">give-receive</parameter>
+            <parameter type="nominal" val="left">side</parameter>
+		</micro>
+		<micro>
+			<name>Comment</name>
+			<parameter type="str" val="Here you go">content</parameter>
+		</micro>
+	</group>
+
+	<group id="3" init="false">
+		<name>Goodbye</name>
+		<micro>
+			<name>farewell</name>
+		</micro>
+	</group>
+
+	<transition>
+		<source ref="0"/>
+		<target ref="1"/>
+		<guard condition="human_ready"/>
+	</transition>
+
+	<transition>
+		<source ref="1"/>
+		<target ref="2"/>
+		<guard condition="human_ready"/>
+	</transition>
+
+	<transition>
+		<source ref="0"/>
+		<target ref="3"/>
+		<guard condition="else"/>
+	</transition>
+
+	<transition>
+		<source ref="1"/>
+		<target ref="3"/>
+		<guard condition="else"/>
+	</transition>
+
+	<transition>
+		<source ref="2"/>
+		<target ref="3"/>
+		<guard condition="human_ready"/>
+		<guard condition="human_busy"/>
+		<guard condition="human_ignore"/>
+	</transition>
+</nta>

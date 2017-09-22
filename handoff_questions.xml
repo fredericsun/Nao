@@ -1,0 +1,18 @@
+<nta>
+  <name>Handoff_QA</name>
+
+  <pair>
+    <question>What are you here for?</question>
+    <question>Why are you here?</question>
+    <answer>I'm making a delivery.</answer>
+    <answer>To make a delivery.</answer>
+    <answer>I am a delivery robot.</answer>
+  </pair>
+
+  <pair>
+    <question>Who is this from?</question>
+    <answer>That is confidential.</answer>
+    <answer>Your secret admirer.</answer>
+  </pair>
+
+</nta>

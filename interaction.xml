@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nta>
+	<name>Example_Interaction</name>
+	<group id="0">
+		<name>greet_human</name>
+		<micro id="0">
+			<name>greeter</name>
+		</micro>
+	</group>
+	<group id="1">
+		<name>give_letter</name>
+		<micro id="1">
+			<name>handoff</name>
+			<parameter side="left"/>
+		</micro>
+		<micro id="2">
+			<name>comment</name>
+			<parameter speech="Here you go!"/>
+		</micro>
+	</group>
+	<group id="2">
+		<name>say_goodbye</name>
+		<micro id="3">
+			<name>farewell</name>
+		</micro>
+	</group>
+	<transition>
+		<source ref="0"/>
+		<target ref="1"/>
+		<guard condition="human_ready"/>
+	</transition>
+	<transition>
+		<source ref="0"/>
+		<target ref="2"/>
+		<guard condition="else"/>
+	</transition>
+	<transition>
+		<source ref="1"/>
+		<target ref="2"/>
+	</transition>
+</nta>
