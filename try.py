@@ -25,6 +25,7 @@ class Nao(object):
 
     def speechRecognition(self, sec):
         speechRec = ALProxy("ALSpeechRecognition", IP, PORT)
+        speechRec.setAudioExpression(False)
         speechRec.setLanguage("English")
         speechRec.setVocabulary(wordList, False)
         speechRec.subscribe("speechID")
@@ -190,7 +191,7 @@ class Greeter:
         startState_Ignored = "Start_Silent_Ignored"
         startState_Present = "Start_Silent_Present"
         newState = None
-        wait_time = 5
+        wait_time = 3
         while True:
             if last_final_state is None or last_final_state == "human_ready":
                 print startState_Present + "\n"
@@ -534,7 +535,8 @@ class Question:
                 print newState + "\n"
 
             if newState == "Silent_Present_Listening_H_Silent":
-                if self.robot.speechRecognition(wait_time) == "Can you repeat?":
+                #if self.robot.speechRecognition(wait_time) == "Can you repeat?":
+                if val == "Can you repeat?":
                     newState = "Silent_Present_Listening_H_Silent"
                     print newState + "\n"
                 else:
@@ -737,7 +739,7 @@ class Wait:
                 print newState + "\n"
                 break
 
-            elif last_final_state == None or last_final_state == "human_ignored":
+            elif last_final_state == None or last_final_state == "human_ignore":
                 print startState_Ignored + "\n"
                 if robot.speechRecognition(wait_time) == "I am ready":
                     newState = "Start_Speech_Notify"
@@ -860,6 +862,9 @@ if __name__ == "__main__":
             if name.text == "Answering":
                 answer = Answer(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(answer)
+            if name.text == "Wait":
+                wait = Wait(robot, groupid, microid)
+                interaction[groupid - 1].append(answer)
             microid += 1
         groupid += 1
 
@@ -907,6 +912,7 @@ if __name__ == "__main__":
             status = "human_ready"
         elif "human_ignore" in out_list:
             status = "human_ignore"
+        print status
         last_final_state = status
 
         for i in range(group_num):
