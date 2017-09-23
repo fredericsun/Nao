@@ -9,6 +9,7 @@ IP = "nao.local"
 PORT = 9559
 wordList = ["hello", "Nice to meet you", "bye", "see you", "I am finished", "I have a question", "good", "Can you repeat?", "I am ready"]
 QuestionList = []
+linkList = []
 AnswerList = []
 Instruction = []
 
@@ -191,7 +192,7 @@ class Greeter:
         startState_Ignored = "Start_Silent_Ignored"
         startState_Present = "Start_Silent_Present"
         newState = None
-        wait_time = 3
+        wait_time = 5
         while True:
             if last_final_state is None or last_final_state == "human_ready":
                 print startState_Present + "\n"
@@ -522,12 +523,24 @@ class Question:
                 val = self.robot.speechRecognition(wait_time)
                 print val
                 if val not in AnswerList:
-                    newState = "Silent_Ignored_H_Silent_End"
+                    if (val == "Can you  repeat?"):
+                        newState = "Silent_Present_Listening_H_Silent"
+                    else:
+                        newState = "Silent_Ignored_H_Silent_End"
+                        output = "human_ignore"
+                        break
                     print newState + "\n"
-                    output = "human_ignore"
-                    break
                 elif val in AnswerList:
-                    newState = "Silent_Listening_H_Speaking_Answering"
+                    # get the index of the answer
+                    idx = AnswerList.index(val)
+                    link = linkList[idx]
+
+                    if (link == "human_ready"):
+                        newState = "Silent_Listening_H_Speaking_Answering"
+                    else:
+                        newState = "Silent_Ignored_H_Silent_End"
+                        output = "human_ignore"
+                        break
                     print newState + "\n"
 
             if newState == "Silent_Listening_H_Speaking_Answering":
@@ -698,10 +711,15 @@ class Instruct:
         out_list.append(output)
 
 class Wait:
-    def __init__(self, robot, groupid, microid):
+    def __init__(self, robot, groupid, microid, speechRecog, waitTime):
         self.robot = robot
         self.groupid = groupid
         self.microid = microid
+        self.speechRecog = speechRecog
+        self.waitTime = waitTime
+
+        if self.speechRecog == None:
+            self.speechRecog = False
 
     def getGroup(self):
         return self.groupid
@@ -716,14 +734,15 @@ class Wait:
 
         newState = None
 
-        wait_time = 5
+        wait_time = self.waitTime
 
         while True:
             if last_final_state == "human_ready":
                 print startState_Present + "\n"
-                if robot.speechRecognition(wait_time) == "I am ready":
+                if self.speechRecog and robot.speechRecognition(wait_time) == "I am ready":
                     newState = "Start_Speech_Notify"
                 else:
+                    time.sleep(wait_time)
                     newState = "Silent_Present_End"
                     output = "human_ready"
                 print newState + "\n"
@@ -731,9 +750,10 @@ class Wait:
 
             elif last_final_state == "human_busy":
                 print startState_Busy + "\n"
-                if robot.speechRecognition(wait_time) == "I am ready":
+                if self.speechRecog and robot.speechRecognition(wait_time) == "I am ready":
                     newState = "Start_Speech_Notify"
                 else:
+                    time.sleep(wait_time)
                     newState = "Silent_Busy_End"
                     output = "human_busy"
                 print newState + "\n"
@@ -741,11 +761,12 @@ class Wait:
 
             elif last_final_state == None or last_final_state == "human_ignore":
                 print startState_Ignored + "\n"
-                if robot.speechRecognition(wait_time) == "I am ready":
+                if self.speechRecog and robot.speechRecognition(wait_time) == "I am ready":
                     newState = "Start_Speech_Notify"
                 else:
+                    time.sleep(wait_time)
                     newState = "Silent_Ignored_End"
-                    output = "human_ignored"
+                    output = "human_ignore"
                 print newState + "\n"
                 break
 
@@ -832,6 +853,7 @@ if __name__ == "__main__":
                     for word in para.iterfind('item'):
                         wordList.append(word.attrib['val'])
                         AnswerList.append(word.attrib['val'])
+                        linkList.append(word.attrib['link'])
                     if para.text == "question":
                         QuestionList.append(para.attrib['val'])
                 question = Question(robot, groupid, microid, speech_token)
@@ -863,8 +885,18 @@ if __name__ == "__main__":
                 answer = Answer(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(answer)
             if name.text == "Wait":
-                wait = Wait(robot, groupid, microid)
-                interaction[groupid - 1].append(answer)
+                speechRecog = None
+                waitTime = 5
+                for para in elem.iterfind('parameter'):
+                    if para.text == "allow_speech":
+                        if para.attrib['val'] == "true":
+                            speechRecog == True
+                        else:
+                            speechRecog == False
+                    if para.text == "wait time (seconds)":
+                        waitTime = int(para.attrib['val'])
+                wait = Wait(robot, groupid, microid, speechRecog, waitTime)
+                interaction[groupid - 1].append(wait)
             microid += 1
         groupid += 1
 
