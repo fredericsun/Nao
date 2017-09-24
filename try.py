@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import threading
 import time
 import random
+import numpy as np
 
 from naoqi import ALProxy
 
@@ -138,13 +139,11 @@ class Nao(object):
         return status
 
     def comment(self, speech):
-        comment = ALProxy("ALAnimatedSpeech", IP, PORT)
-        configuration = {"bodyLanguageMode": "contextual"}
-        comment.say(speech, configuration)
+        comment = ALProxy("ALTextToSpeech", IP, PORT)
+        comment.say(speech)
 
     def question(self):
-        question = ALProxy("ALAnimatedSpeech", IP, PORT)
-        configuration = {"bodyLanguageMode": "contextual"}
+        question = ALProxy("ALTextToSpeech", IP, PORT)
         question.say(QuestionList[0], configuration)
 
     def answer(self, mark):
@@ -152,9 +151,8 @@ class Nao(object):
         answer.say(random.choice(handoff_question[mark]))
 
     def instruct(self):
-        instruct = ALProxy("ALAnimatedSpeech", IP, PORT)
-        configuration = {"bodyLanguageMode": "contextual"}
-        instruct.say(Instruction[0], configuration)
+        instruct = ALProxy("ALTextToSpeech", IP, PORT)
+        instruct.say(Instruction[0])
 
     def soundDetected(self, sec):
         sound = ALProxy("ALSoundDetection", IP, PORT)
@@ -174,6 +172,37 @@ class Nao(object):
         val = moves.getData("MovementDetection/MovementInfo")
         move.unsubscribe("moveID")
         return val
+
+    def gaze_at_human(self):
+        head_at_human = ALProxy("ALMotion", IP, PORT)
+        names = ["HeadPitch", "HeadYaw"]
+        angles = [0, 0]
+        head_at_human.setAngles(names, angles, 0.2)
+
+    def gaze_intimacy(self):
+        head_intimacy = ALProxy("ALMotion", IP, PORT)
+        angle_list = [0.1396, -0.1396]
+        time_between = np.random.normal(4.75, 1.39)
+        time.sleep(time_between)
+        head_intimacy.setAngles("HeadYaw", random.choice(angle_list), 0.2)
+        time_length = np.random.normal(1.96, 0.32)
+        time.sleep(time_length)
+        gaze_at_human()
+
+    def gaze_cognition(self):
+        head_cognition = ALProxy("ALMotion", IP, PORT)
+        head_cognition.setAngles("HeadPitch", -0.1396)
+        time_length = np.random.normal(3.54, 1.26)
+        time.sleep(time_length)
+
+    def gaze_conf_hand(self, side):
+        head_hand = ALProxy("ALMotion", IP, PORT)
+        names = ["HeadPitch", "HeadYaw"]
+        if side == "left":
+            angles = [0.3359041213989258, 0.3819241523742676]
+        else:
+            angles = [0.37885594367980957, -0.6075060367584229]
+        head_hand.setAngles(names, angles, 0.2)
 
 class Greeter:
     def __init__(self, robot, groupid, microid, speech_token):
@@ -196,11 +225,13 @@ class Greeter:
         while True:
             if last_final_state is None or last_final_state == "human_ready":
                 print startState_Present + "\n"
+                self.robot.gaze_at_human()
                 newState = "Speaking_Present_Greeting"
                 print newState + "\n"
 
             elif last_final_state == "human_ignore":
                 print startState_Ignored + "\n"
+                self.robot.gaze_at_human()
                 newState = "Speaking_Ignored_Greeting"
                 print newState + "\n"
 
@@ -254,11 +285,13 @@ class Farewell:
         while True:
             if last_final_state is None or last_final_state == "human_ready":
                 print startState_Present + "\n"
+                self.robot.gaze_at_human()
                 newState = "Speaking_Present_BiddingFarewell"
                 print newState + "\n"
 
             elif last_final_state == "human_ignore":
                 print startState_Ignored + "\n"
+                self.robot.gaze_at_human()
                 newState = "Speaking_Ignored_BiddingFarewell"
                 print newState + "\n"
 
@@ -315,7 +348,16 @@ class Comment:
                 print newState + "\n"
                 if newState == "Speaking_Present_Asking":
                     self.speech_token.acquire()
-                    self.robot.comment(self.speechList[0])
+                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0]))
+                    t2 = threading.Thread(target=robot.gaze_intimacy, args=())
+                    t1.start()
+                    t2.start()
+                    t1.join()
+                    flag = True
+                    while(flag):
+                        if t1.isAlive() != True:
+                            flag = Flase
+                            self.robot.gaze_at_human()
                     self.speech_token.release()
                     newState = "Silent_Present_End"
                     print newState + "\n"
@@ -328,7 +370,16 @@ class Comment:
                 print newState + "\n"
                 if newState == "Speaking_Busy_Asking":
                     self.speech_token.acquire()
-                    self.robot.comment(self.speechList[0])
+                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0]))
+                    t2 = threading.Thread(target=robot.gaze_intimacy, args=())
+                    t1.start()
+                    t2.start()
+                    t1.join()
+                    flag = True
+                    while(flag):
+                        if t1.isAlive() != True:
+                            flag = Flase
+                            self.robot.gaze_at_human()
                     self.speech_token.release()
                     newState = "Silent_End_Busy"
                     print newState + "\n"
@@ -341,7 +392,16 @@ class Comment:
                 print newState + "\n"
                 if newState == "Speaking_Ignored_Asking":
                     self.speech_token.acquire()
-                    self.robot.comment(self.speechList[0])
+                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0]))
+                    t2 = threading.Thread(target=robot.gaze_intimacy, args=())
+                    t1.start()
+                    t2.start()
+                    t1.join()
+                    flag = True
+                    while(flag):
+                        if t1.isAlive() != True:
+                            flag = Flase
+                            self.robot.gaze_at_human()
                     self.speech_token.acquire()
                     newState = "Silent_Ignored_End"
                     print newState + "\n"
@@ -395,11 +455,21 @@ class Handoff:
             if newState == "Present_Extending_Arm_Extended":
                 if self.side == "left":
                     self.larm_token.acquire()
-                    self.robot.leftarmExtended()
+                    t1 = threading.Thread(target=robot.leftarmExtended, args=())
+                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(side))
+                    t1.start()
+                    t2.start()
+                    t1.join()
+                    t2.join()
                     self.larm_token.release()
                 elif self.side == "right":
                     self.rarm_token.acquire()
-                    self.robot.rightarmExtended()
+                    t1 = threading.Thread(target=robot.rightarmExtended, args=())
+                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(side))
+                    t1.start()
+                    t2.start()
+                    t1.join()
+                    t2.join()
                     self.rarm_token.release()
                 newState = "Releasing_Contacted_Arm_Extended"
                 print newState + "\n"
