@@ -2,10 +2,15 @@ import xml.etree.ElementTree as ET
 import threading
 import time
 import random
+import signal
+import sys
 import numpy as np
 
 from naoqi import ALProxy
 
+##########################
+# GLOBAL VARIABLES
+##########################
 IP = "nao.local"
 PORT = 9559
 wordList = ["hello", "Nice to meet you", "bye", "see you", "I am finished", "I have a question", "good", "Can you repeat?", "I am ready"]
@@ -14,12 +19,31 @@ linkList = []
 AnswerList = []
 Instruction = []
 
+# keep a list of all subscribers so that if the script is killed, we can unsubscribe from everything
+subscribedTo = {}
+
+##########################
+# EXIT HANDLING
+##########################
+def handle_exit(signum, frame):
+    for s in subscribedTo:
+        s.unsubscribe(subscribedTo[s])
+
+    print "All proxies terminated."
+    sys.exit()
+
+signal.signal(signal.SIGTERM, handle_exit)
+signal.signal(signal.SIGINT, handle_exit)
+
+##########################
+# NAO FUNCTIONALITY
+##########################
 class Nao(object):
     name = ""
     def __init__(self, name):
         self.name = name
-        listening = ALProxy("ALAutonomousMoves", IP, PORT)
-        listening.setExpressiveListeningEnabled(False)
+        autoMove = ALProxy("ALAutonomousMoves", IP, PORT)
+        autoMove.setExpressiveListeningEnabled(False)
 
 
     def getName(self):
@@ -30,12 +54,20 @@ class Nao(object):
         speechRec.setAudioExpression(False)
         speechRec.setLanguage("English")
         speechRec.setVocabulary(wordList, False)
+
+        # update the list of subscribed
+        subscribedTo[speechRec] = "speechID"
         speechRec.subscribe("speechID")
+
         time.sleep(sec)
         speechMem = ALProxy("ALMemory", IP, PORT)
         val = speechMem.getData("WordRecognized")
         speechRec.pause(True)
+
+        # remove from list of subscribed
         speechRec.unsubscribe("speechID")
+        del subscribedTo[speechRec]
+
         if val == []:
             return None
         return val[0]
@@ -44,11 +76,19 @@ class Nao(object):
     def faceDetection(self):
         faceDet = ALProxy("ALFaceDetection", IP, PORT)
         period = 500
+
+        # update the subscribed list
+        subscribedTo[faceDet] = "faceID"
         faceDet.subscribe("faceID", period, 0.0)
+
         faceMem = ALProxy("ALMemory", IP, PORT)
         val = faceMem.getData("FaceDetected")
         print val
+
+        # remove from subscribed list
         faceDet.unsubscribe("faceID")
+        del subscribedTo[faceDet]
+
         if (val and isinstance(val, list) and len(val) == 2):
             return True
         return False
@@ -79,14 +119,14 @@ class Nao(object):
     def farewell(self):
         farewell = ALProxy("ALTextToSpeech", IP, PORT)
         motionProxy = ALProxy("ALMotion", IP, PORT)
-        exr = ALProxy("ALMotion", IP, PORT)
-        exr.setStiffnesses("RArm", 1.0)
-        names = ["RShoulderPitch", "RWristYaw", "RShoulderRoll", "RElbowRoll", "RElbowYaw"]
-        angles = [-1.57, 1.3, -0.79, 0.5, 2.0]
-        fractionMaxSpeed = 0.2
-        exr.post.setAngles(names, angles, fractionMaxSpeed)
-        farewell.say("See you")
-        motionProxy.rest()
+        #exr = ALProxy("ALMotion", IP, PORT)
+        #exr.setStiffnesses("RArm", 1.0)
+        #names = ["RShoulderPitch", "RWristYaw", "RShoulderRoll", "RElbowRoll", "RElbowYaw"]
+        #angles = [-1.57, 1.3, -0.79, 0.5, 2.0]
+        #fractionMaxSpeed = 0.2
+        #exr.post.setAngles(names, angles, fractionMaxSpeed)
+        farewell.say("Goodbye.")
+        #motionProxy.rest()
 
     def openLefthand(self):
         openl = ALProxy("ALMotion", IP, PORT)
@@ -163,20 +203,36 @@ class Nao(object):
     def soundDetected(self, sec):
         sound = ALProxy("ALSoundDetection", IP, PORT)
         sound.setParameter("Sensitivity", 0.3)
+
+        # update the list of subscribed
+        subscribedTo[sound] = "soundID"
         sound.subscribe("soundID")
+
         time.sleep(sec)
         soundMem = ALProxy("ALMemory", IP, PORT)
         val = soundMem.getData("SoundDetected")
+
+        # remove sound from subscribed
         sound.unsubscribe("soundID")
+        del subscribedTo[sound]
+
         return val
 
     def movementDetected(self, sec):
         move = ALProxy("ALMovementDetection", IP, PORT)
+
+        # updated the subscribed list
+        subscribedTo[move] = "moveID"
         move.subscribe("moveID")
+
         time.sleep(sec)
         moves = ALProxy("ALMemory", IP, PORT)
         val = moves.getData("MovementDetection/MovementInfo")
+
+        # remove move from subscribe list
         move.unsubscribe("moveID")
+        del subscribedTo[move]
+
         return val
 
     def gaze_at_human(self):
@@ -210,6 +266,9 @@ class Nao(object):
             angles = [0.37885594367980957, -0.6075060367584229]
         head_hand.setAngles(names, angles, 0.2)
 
+##########################
+# MICROINTERACTIONS
+##########################
 class Greeter:
     def __init__(self, robot, groupid, microid, speech_token):
         self.groupid = groupid
@@ -891,6 +950,9 @@ class Wait:
 
         out_list.append(output)
 
+##########################
+# GROUP OF CONCURRENT MICROINTERACTIONS
+##########################
 class Group:
     def __init__(self, name, target):
         self.name = name
@@ -902,7 +964,9 @@ class Group:
     def getTarget(self):
         return self.target
 
-
+##########################
+# RUN
+##########################
 if __name__ == "__main__":
     robot = Nao("robot")
     pool = []
