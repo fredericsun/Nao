@@ -36,6 +36,8 @@ class Nao(object):
         val = speechMem.getData("WordRecognized")
         speechRec.pause(True)
         speechRec.unsubscribe("speechID")
+        if val == []:
+            return None
         return val[0]
 
 
@@ -153,6 +155,10 @@ class Nao(object):
     def instruct(self):
         instruct = ALProxy("ALTextToSpeech", IP, PORT)
         instruct.say(Instruction[0])
+
+    def repeat(self):
+        repeat = ALProxy("ALTextToSpeech", IP, PORT)
+        repeat.say("Sorry I did not get it. Can you repeat the question?")
 
     def soundDetected(self, sec):
         sound = ALProxy("ALSoundDetection", IP, PORT)
@@ -587,11 +593,48 @@ class Question:
                 self.robot.question()
                 self.speech_token.release()
                 newState = "Silent_Present_Listening_H_Silent"
-                print newState + "\n"
 
-            if newState == "Silent_Present_Listening_H_Silent":
-                val = self.robot.speechRecognition(wait_time)
-                print val
+            while Ture:
+                if newState == "Silent_Present_Listening_H_Silent":
+                    print newState + "\n"
+                    val = self.robot.speechRecognition(wait_time)
+                    if val is None:
+                        newState = "Silent_Ignored_H_Silent_End"
+                        print newState + "\n"
+                        break
+                    else:
+                        newState = "Silent_Listening_H_Speaking_Answering"
+                        print newState + "\n"
+
+                    if newState == "Silent_Listening_H_Speaking_Answering":
+                        if val in AnswerList:
+                            newState = "Silent_Present_Listening_H_Silent"
+                            print newState + "\n"
+                            newState = "Silent_Present_H_Silent_End"
+                            print newState + "\n"
+                            break
+                        elif val not in AnswerList:
+                            newState = "Silent_Present_Listening_H_Silent"
+                            print newState + "\n"
+                            newState = "Speaking_RepeatAsk_Present_H_Silent"
+                            print newState + "\n"
+                            self.robot.repeat()
+                            newState = "Silent_Present_Listening_H_Silent"
+
+            if newState == "Silent_Ignored_H_Silent_End":
+                output = "human_ignore"
+                break
+
+            if newState == "Silent_Present_H_Silent_End":
+                idx = AnswerList.index(val)
+                link = linkList[idx]
+                if (link == "human_ready" or link == ""):
+                    output = "human_ready"
+                else:
+                    output = "human_ignore"
+                break
+
+            '''
                 if val not in AnswerList:
                     if (val == "Can you  repeat?"):
                         newState = "Silent_Present_Listening_H_Silent"
@@ -605,7 +648,7 @@ class Question:
                     idx = AnswerList.index(val)
                     link = linkList[idx]
 
-                    if (link == "human_ready"):
+                    if (link == "human_ready" or link == ""):
                         newState = "Silent_Listening_H_Speaking_Answering"
                     else:
                         newState = "Silent_Ignored_H_Silent_End"
@@ -627,6 +670,7 @@ class Question:
                     print newState + "\n"
                     output = "human_ready"
                     break
+            '''
         out_list.append(output)
 
 class Answer:
