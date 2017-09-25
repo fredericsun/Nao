@@ -2,8 +2,12 @@ import operator
 import threading
 import time
 import random
+<<<<<<< HEAD
 import numpy as np
+=======
+>>>>>>> a694b0da1da830a9db573d0a1afc5508b96005fc
 from naoqi import ALProxy
+import numpy as np
 from Protocol import Protocol
 
 IP = "nao.local"
@@ -20,12 +24,12 @@ class Gaze():
 		# just as it is possible to have multiple different gaze behaviors competing
 		#     for each other, it is possible for multiple different microinteractions
 		#     to be undergoing the same gaze behavior
-		self.GAZE_AT = {}             
+		self.GAZE_AT = {}
 		self.GAZE_REFERENTIAL = {}
 		self.GAZE_COGNITIVE = {}
 		self.GAZE_INTIMATE = {}
 		self.GAZE_ELSE = {}
-		self.threadDicts = {"GAZE_AT": self.GAZE_AT, 
+		self.threadDicts = {"GAZE_AT": self.GAZE_AT,
 							"GAZE_REFERENTIAL": self.GAZE_REFERENTIAL,
 							"GAZE_COGNITIVE": self.GAZE_COGNITIVE,
 							"GAZE_INTIMACY": self.GAZE_INTIMATE,
@@ -119,7 +123,7 @@ class Gaze():
 		# reset the loop_lock
 		self.loop_lock[0] = True
 
-		# choose a behavior to run based on the protocol that currently applies 
+		# choose a behavior to run based on the protocol that currently applies
 		self.ChooseProcess()
 
 	def ChooseProcess(self):
