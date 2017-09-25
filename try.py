@@ -6,6 +6,7 @@ import signal
 import sys
 import numpy as np
 
+from gaze import Gaze
 from naoqi import ALProxy
 
 ##########################
@@ -42,9 +43,9 @@ class Nao(object):
     name = ""
     def __init__(self, name):
         self.name = name
+        self.gaze = Gaze()
         autoMove = ALProxy("ALAutonomousMoves", IP, PORT)
         autoMove.setExpressiveListeningEnabled(False)
-
 
     def getName(self):
         return self.name
@@ -131,10 +132,12 @@ class Nao(object):
     def openLefthand(self):
         openl = ALProxy("ALMotion", IP, PORT)
         openl.openHand('LHand')
+        time.sleep(3)
 
     def openRighthand(self):
         openr = ALProxy("ALMotion", IP, PORT)
         openr.openHand('RHand')
+        time.sleep(3)
 
     def closeLefthand(self):
         closel = ALProxy("ALMotion", IP, PORT)
@@ -178,6 +181,13 @@ class Nao(object):
     def touchDetected(self):
         touch = ALProxy("ALTouch", IP, PORT)
         status = touch.getStatus()
+        return status
+
+    def waitUntilTouchDetected(self):
+        status = False
+        while (status == False):
+            status = self.touchDetected()
+            time.sleep(.1)
         return status
 
     def comment(self, speech):
@@ -289,32 +299,41 @@ class Greeter:
         wait_time = 5
         while True:
             if last_final_state is None or last_final_state == "human_ready":
+                self.robot.gaze.addBehavior("Greeter", "GAZE_AT")
                 print startState_Present + "\n"
                 self.robot.gaze_at_human()
                 newState = "Speaking_Present_Greeting"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
 
             elif last_final_state == "human_ignore":
+                self.robot.gaze.addBehavior("Greeter", "GAZE_AT")
                 print startState_Ignored + "\n"
                 self.robot.gaze_at_human()
                 newState = "Speaking_Ignored_Greeting"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
 
             if newState == "Speaking_Present_Greeting":
+                self.robot.gaze.addBehavior("Greeter", "GAZE_AT")
                 self.speech_token.acquire()
                 self.robot.greet()
                 self.speech_token.release()
                 newState = "Waiting_Silent_Present"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
 
             elif newState == "Speaking_Ignored_Greeting":
+                self.robot.gaze.addBehavior("Greeter", "GAZE_AT")
                 self.speech_token.acquire()
                 self.robot.greet()
                 self.speech_token.release()
                 newState = "Waiting_Silent_Ignored"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
 
             if newState == "Waiting_Silent_Present" or "Waiting_Silent_Ignored":
+                self.robot.gaze.addBehavior("Greeter", "GAZE_AT")
                 speech = self.robot.speechRecognition(wait_time)
                 print speech
                 if speech != "":
@@ -327,6 +346,8 @@ class Greeter:
                     print newState + "\n"
                     output = "human_ignore"
                     break
+                self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
+
         out_list.append(output)
 
 class Farewell:
@@ -421,7 +442,7 @@ class Comment:
                     flag = True
                     while(flag):
                         if t1.isAlive() != True:
-                            flag = Flase
+                            flag = False
                             self.robot.gaze_at_human()
                     self.speech_token.release()
                     newState = "Silent_Present_End"
@@ -443,7 +464,7 @@ class Comment:
                     flag = True
                     while(flag):
                         if t1.isAlive() != True:
-                            flag = Flase
+                            flag = False
                             self.robot.gaze_at_human()
                     self.speech_token.release()
                     newState = "Silent_End_Busy"
@@ -465,7 +486,7 @@ class Comment:
                     flag = True
                     while(flag):
                         if t1.isAlive() != True:
-                            flag = Flase
+                            flag = False
                             self.robot.gaze_at_human()
                     self.speech_token.acquire()
                     newState = "Silent_Ignored_End"
@@ -521,7 +542,7 @@ class Handoff:
                 if self.side == "left":
                     self.larm_token.acquire()
                     t1 = threading.Thread(target=robot.leftarmExtended, args=())
-                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(side))
+                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(self.side))
                     t1.start()
                     t2.start()
                     t1.join()
@@ -530,7 +551,7 @@ class Handoff:
                 elif self.side == "right":
                     self.rarm_token.acquire()
                     t1 = threading.Thread(target=robot.rightarmExtended, args=())
-                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(side))
+                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(self.side))
                     t1.start()
                     t2.start()
                     t1.join()
@@ -553,8 +574,9 @@ class Handoff:
                     print newState + "\n"
 
                 if newState == "Releasing_Present_Arm_Extended":
-                    touch = self.robot.touchDetected()
-                    time.sleep(wait_time)
+                    #touch = self.robot.touchDetected()
+                    #time.sleep(wait_time)
+                    touch = self.robot.waitUntilTouchDetected()
                     print touch
                     if self.side == "left":
                         if touch[4][1] == True:
@@ -568,6 +590,7 @@ class Handoff:
                             newState = "Present_End_Arm_Retracted"
                             print newState + "\n"
                             output = "human_ready"
+                            time.sleep(2)
                             break
                     elif self.side == "right":
                         if touch[1][1] == True:
@@ -581,11 +604,13 @@ class Handoff:
                             newState = "Present_End_Arm_Retracted"
                             print newState + "\n"
                             output = "human_ready"
+                            time.sleep(2)
                             break
             if self.give_receive == "give":
                 if newState == "Releasing_Contacted_Arm_Extended":
-                    touch = self.robot.touchDetected()
-                    time.sleep(wait_time)
+                    #touch = self.robot.touchDetected()
+                    #time.sleep(wait_time)
+                    touch = self.robot.waitUntilTouchDetected()
                     print touch
                     if self.side == "left":
                         if touch[4][1] == True:
@@ -1100,6 +1125,10 @@ if __name__ == "__main__":
     last_final_state = None
     loop = True
     while loop == True:
+
+        # obtain the protocols for this group
+        # (for now, assume that there are no protocols)
+
         if transition[currGroup].getTarget() == {}:
             loop = False
         target = transition[currGroup].getTarget()
