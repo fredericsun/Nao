@@ -2,10 +2,6 @@ import operator
 import threading
 import time
 import random
-<<<<<<< HEAD
-import numpy as np
-=======
->>>>>>> a694b0da1da830a9db573d0a1afc5508b96005fc
 from naoqi import ALProxy
 import numpy as np
 from Protocol import Protocol
