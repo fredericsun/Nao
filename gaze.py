@@ -79,6 +79,12 @@ class Gaze():
 	def killBehavior(self, microinteraction, behavior):
 		# remove the behavior from the list of currently-active behaviors
 		del self.Behaviors[microinteraction]
+		# print the current processes
+		for key,value in self.Behaviors.iteritems():
+			print "~~~~"
+			print key
+			print value
+			print "~~~~"
 
 		# get the thread, remove it
 		threads = self.threadDicts[behavior]
@@ -99,6 +105,13 @@ class Gaze():
 		self.ChooseProcess()
 
 	def ChooseProcess(self):
+		# print the current processes
+		for key,value in self.Behaviors.iteritems():
+			print "~~~~"
+			print key
+			print value
+			print "~~~~"
+
 		microinteraction = None
 		behavior = None
 

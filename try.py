@@ -340,13 +340,14 @@ class Greeter:
                     newState = "Silent_ReturnedGreeting_End"
                     print newState + "\n"
                     output = "human_ready"
+                    self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
                     break
                 else:
                     newState = "Silent_Ignored_End"
                     print newState + "\n"
                     output = "human_ignore"
+                    self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
                     break
-                self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
 
         out_list.append(output)
 
@@ -542,20 +543,20 @@ class Handoff:
                 if self.side == "left":
                     self.larm_token.acquire()
                     t1 = threading.Thread(target=robot.leftarmExtended, args=())
-                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(self.side))
+                    #t2 = threading.Thread(target=robot.gaze_conf_hand, args=(self.side))
                     t1.start()
-                    t2.start()
+                    #t2.start()
                     t1.join()
-                    t2.join()
+                    #t2.join()
                     self.larm_token.release()
                 elif self.side == "right":
                     self.rarm_token.acquire()
                     t1 = threading.Thread(target=robot.rightarmExtended, args=())
-                    t2 = threading.Thread(target=robot.gaze_conf_hand, args=(self.side))
+                    #t2 = threading.Thread(target=robot.gaze_conf_hand, args=(self.side))
                     t1.start()
-                    t2.start()
+                    #t2.start()
                     t1.join()
-                    t2.join()
+                    #t2.join()
                     self.rarm_token.release()
                 newState = "Releasing_Contacted_Arm_Extended"
                 print newState + "\n"
