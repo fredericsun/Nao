@@ -1,8 +1,13 @@
 import operator
 import threading
 import time
+import random
 from naoqi import ALProxy
+import numpy as np
 from Protocol import Protocol
+
+IP = "nao.local"
+PORT = 9559
 
 class Gaze():
 	def __init__(self):
@@ -15,12 +20,12 @@ class Gaze():
 		# just as it is possible to have multiple different gaze behaviors competing
 		#     for each other, it is possible for multiple different microinteractions
 		#     to be undergoing the same gaze behavior
-		self.GAZE_AT = {}             
+		self.GAZE_AT = {}
 		self.GAZE_REFERENTIAL = {}
 		self.GAZE_COGNITIVE = {}
 		self.GAZE_INTIMATE = {}
 		self.GAZE_ELSE = {}
-		self.threadDicts = {"GAZE_AT": self.GAZE_AT, 
+		self.threadDicts = {"GAZE_AT": self.GAZE_AT,
 							"GAZE_REFERENTIAL": self.GAZE_REFERENTIAL,
 							"GAZE_COGNITIVE": self.GAZE_COGNITIVE,
 							"GAZE_INTIMACY": self.GAZE_INTIMATE,
@@ -30,12 +35,23 @@ class Gaze():
 		self.loop_lock = [True]
 
 	def GazeAt(self, microinteraction):
+		head_at_human = ALProxy("ALMotion", IP, PORT)
+		names = ["HeadPitch", "HeadYaw"]
+		angles = [0, 0]
+		head_at_human.setAngles(names, angles, 0.2)
 		print "Gaze at!"
 
 	def GazeIntimacy(self, microinteraction):
+		head_intimacy = ALProxy("ALMotion", IP, PORT)
+		angle_list = [0.1396, -0.1396]
 		while self.loop_lock[0] == True:
+			head_intimacy.setAngles("HeadYaw", random.choice(angle_list), 0.2)
 			print "Gaze intimacy!"
-			time.sleep(1)
+			time_length = np.random.normal(1.96, 0.32)
+			time.sleep(time_length)
+			self.GazeAt(microinteraction)
+			time_between = np.random.normal(4.75, 1.39)
+			time.sleep(time_between)
 
 	def GazeCognitive(self, microinteraction):
 		# look up and then down
@@ -101,7 +117,7 @@ class Gaze():
 		# reset the loop_lock
 		self.loop_lock[0] = True
 
-		# choose a behavior to run based on the protocol that currently applies 
+		# choose a behavior to run based on the protocol that currently applies
 		self.ChooseProcess()
 
 	def ChooseProcess(self):
