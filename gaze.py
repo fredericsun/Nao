@@ -1,8 +1,13 @@
 import operator
 import threading
 import time
+import random
+import numpy as np
 from naoqi import ALProxy
 from Protocol import Protocol
+
+IP = "nao.local"
+PORT = 9559
 
 class Gaze():
 	def __init__(self):
@@ -30,12 +35,25 @@ class Gaze():
 		self.loop_lock = [True]
 
 	def GazeAt(self, microinteraction):
+		head_at_human = ALProxy("ALMotion", IP, PORT)
+		names = ["HeadPitch", "HeadYaw"]
+		angles = [0, 0]
+		head_at_human.setAngles(names, angles, 0.1)
 		print "Gaze at!"
-
+		
 	def GazeIntimacy(self, microinteraction):
+		print "Gaze intimacy!"
+		head_intimacy = ALProxy("ALMotion", IP, PORT)
+		angle_list = [0.1396, -0.1396]
+		head_intimacy.setStiffnesses("Head", 1.0)
 		while self.loop_lock[0] == True:
+			head_intimacy.setAngles("HeadYaw", random.choice(angle_list), 0.1)
 			print "Gaze intimacy!"
-			time.sleep(1)
+			time_length = np.random.normal(1.96, 0.32)
+			time.sleep(time_length)
+			self.GazeAt(microinteraction)
+			time_between = np.random.normal(4.75, 1.39)
+			time.sleep(time_between)
 
 	def GazeCognitive(self, microinteraction):
 		# look up and then down
@@ -69,7 +87,7 @@ class Gaze():
 		if behavior == "GAZE_COGNITIVE":
 			self.GAZE_COGNITIVE[microinteraction] = threading.Thread(target=self.GazeCognitive, args=(microinteraction, ))
 		if behavior == "GAZE_INTIMACY":
-			self.GAZE_INTIMACY[microinteraction] = threading.Thread(target=self.GazeIntimacy, args=(microinteraction, ))
+			self.GAZE_INTIMATE[microinteraction] = threading.Thread(target=self.GazeIntimacy, args=(microinteraction, ))
 		if behavior == "GAZE_ELSE":
 			self.GAZE_ELSE[microinteraction] = threading.Thread(target=self.GazeElse, args=(microinteraction, ))
 

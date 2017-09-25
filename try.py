@@ -376,42 +376,53 @@ class Farewell:
         wait_time = 5
         while True:
             if last_final_state is None or last_final_state == "human_ready":
+                self.robot.gaze.addBehavior("Farewell", "GAZE_AT")
                 print startState_Present + "\n"
                 self.robot.gaze_at_human()
                 newState = "Speaking_Present_BiddingFarewell"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
 
             elif last_final_state == "human_ignore":
+                self.robot.gaze.addBehavior("Farewell", "GAZE_AT")
                 print startState_Ignored + "\n"
                 self.robot.gaze_at_human()
                 newState = "Speaking_Ignored_BiddingFarewell"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
 
             if newState == "Speaking_Present_BiddingFarewell":
+                self.robot.gaze.addBehavior("Farewell", "GAZE_AT")
                 self.speech_token.acquire()
                 self.robot.farewell()
                 self.speech_token.release()
                 newState = "Wait_Silent_Present"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
 
             elif newState == "Speaking_Ignored_BiddingFarewell":
+                self.robot.gaze.addBehavior("Farewell", "GAZE_AT")
                 self.speech_token.acquire()
                 self.robot.farewell()
                 self.speech_token.release()
                 newState = "Wait_Silent_Ignored"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
 
             if newState == "Wait_Silent_Present" or "Wait_Silent_Ignored":
+                self.robot.gaze.addBehavior("Farewell", "GAZE_AT")
                 speech = self.robot.speechRecognition(wait_time)
                 if speech == "see you" or speech == "bye":
                     newState = "Silent_End_Acknowledged"
                     print newState + "\n"
                     output = "human_ready"
+                    self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
                     break
                 else:
                     newState = "Silent_Ignored_End"
                     print newState + "\n"
                     output = "human_ignore"
+                    self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
                     break
         out_list.append(output)
 
@@ -435,15 +446,21 @@ class Comment:
         startState_Busy = "Start_Silent_Busy"
         while True:
             if last_final_state == "human_ready":
+
+                self.robot.gaze.addBehavior("Comment", "GAZE_AT")
                 print startState_Present + "\n"
                 newState = "Speaking_Present_Asking"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Comment", "GAZE_AT")
+
                 if newState == "Speaking_Present_Asking":
+
+                    self.robot.gaze.addBehavior("Comment", "GAZE_INTIMACY")
                     self.speech_token.acquire()
-                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0]))
-                    t2 = threading.Thread(target=robot.gaze_intimacy, args=())
+                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0], ))
+                    #t2 = threading.Thread(target=robot.gaze_intimacy, args=())
                     t1.start()
-                    t2.start()
+                    #t2.start()
                     t1.join()
                     flag = True
                     while(flag):
@@ -451,21 +468,31 @@ class Comment:
                             flag = False
                             self.robot.gaze_at_human()
                     self.speech_token.release()
+                    self.robot.gaze.killBehavior("Comment", "GAZE_INTIMACY")
+
+                    self.robot.gaze.addBehavior("Comment", "GAZE_AT")
                     newState = "Silent_Present_End"
+                    self.robot.gaze.killBehavior("Comment", "GAZE_AT")
                     print newState + "\n"
                     output = "human_ready"
                     break
 
             elif last_final_state == "human_busy":
+
+                self.robot.gaze.addBehavior("Comment", "GAZE_AT")
                 print startState_Busy + "\n"
                 newState = "Speaking_Busy_Asking"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Comment", "GAZE_AT")
+
                 if newState == "Speaking_Busy_Asking":
+
+                    self.robot.gaze.addBehavior("Comment", "GAZE_INTIMACY")
                     self.speech_token.acquire()
-                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0]))
-                    t2 = threading.Thread(target=robot.gaze_intimacy, args=())
+                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0], ))
+                    #t2 = threading.Thread(target=robot.gaze_intimacy, args=())
                     t1.start()
-                    t2.start()
+                    #t2.start()
                     t1.join()
                     flag = True
                     while(flag):
@@ -473,31 +500,45 @@ class Comment:
                             flag = False
                             self.robot.gaze_at_human()
                     self.speech_token.release()
+                    self.robot.gaze.killBehavior("Comment", "GAZE_INTIMACY")
+
+                    self.robot.gaze.addBehavior("Comment", "GAZE_AT")
                     newState = "Silent_End_Busy"
                     print newState + "\n"
                     output = "human_busy"
+                    self.robot.gaze.killBehavior("Comment", "GAZE_AT")
                     break
 
             elif last_final_state is None or last_final_state == "human_ignore":
+
+                self.robot.gaze.addBehavior("Comment", "GAZE_AT")
                 print startState_Ignored + "\n"
                 newState = "Speaking_Ignored_Asking"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Comment", "GAZE_AT")
+
                 if newState == "Speaking_Ignored_Asking":
+
+                    self.robot.gaze.addBehavior("Comment", "GAZE_INTIMACY")
                     self.speech_token.acquire()
-                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0]))
-                    t2 = threading.Thread(target=robot.gaze_intimacy, args=())
+                    t1 = threading.Thread(target=robot.comment, args=(self.speechList[0], ))
+                    #t2 = threading.Thread(target=robot.gaze_intimacy, args=())
                     t1.start()
-                    t2.start()
+                    #t2.start()
                     t1.join()
                     flag = True
                     while(flag):
                         if t1.isAlive() != True:
                             flag = False
                             self.robot.gaze_at_human()
-                    self.speech_token.acquire()
+                    self.speech_token.release()
+                    self.robot.gaze.killBehavior("Comment", "GAZE_INTIMACY")
+
+                    self.robot.gaze.addBehavior("Comment", "GAZE_AT")
                     newState = "Silent_Ignored_End"
                     print newState + "\n"
                     output = "human_ignore"
+                    self.robot.gaze.killBehavior("Comment", "GAZE_AT")
                     break
         out_list.append(output)
 
