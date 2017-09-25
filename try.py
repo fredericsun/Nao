@@ -186,7 +186,12 @@ class Nao(object):
     def waitUntilTouchDetected(self):
         status = False
         while (status == False):
-            status = self.touchDetected()
+            rawStatus = self.touchDetected()
+            #print rawStatus
+            for array in rawStatus:
+                if array[0] == 'RHand':
+                    status = array[1]
+                    break
             time.sleep(.1)
         return status
 
