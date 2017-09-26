@@ -7,6 +7,7 @@ import sys
 import numpy as np
 
 from gaze import Gaze
+from gesture import Gesture
 from naoqi import ALModule
 from naoqi import ALBroker
 from naoqi import ALProxy
@@ -49,6 +50,7 @@ class Nao(ALModule):
         self.name = name
         ALModule.__init__(self, self.name)
         self.gaze = Gaze()
+        self.gesture = Gesture()
         self.loop_lock = False
         autoMove = ALProxy("ALAutonomousMoves", IP, PORT)
         autoMove.setExpressiveListeningEnabled(False)
@@ -57,11 +59,13 @@ class Nao(ALModule):
         return self.name
 
     def speechRecognition(self, sec):
+        print "Started speech recognition"
         speechRec = ALProxy("ALSpeechRecognition", IP, PORT)
         speechRec.setAudioExpression(False)
         speechRec.setLanguage("English")
         speechRec.setVocabulary(wordList, False)
 
+        print "Subscribing to events"
         # update the list of subscribed
         subscribedTo[speechRec] = "speechID"
         speechRec.subscribe("speechID")
@@ -72,6 +76,8 @@ class Nao(ALModule):
         speechMem.subscribeToEvent("WordRecognized",
             "robot",
             "onWordRecognized")
+
+        print "Subscribed"
         while sec > 0:
             if (self.loop_lock):
                 self.loop_lock = False
@@ -967,7 +973,8 @@ class Instruct:
                 self.robot.gaze.killBehavior("Instruct", "GAZE_AT")
 
             if newState == "Speaking_Listening_Instructing_H_Silent":
-                self.robot.gaze.addBehavior("Instruct", "GAZE_INTIMACY", Instruction[0])
+                self.robot.gaze.addBehavior("Instruct", "GAZE_REFERENTIAL", Instruction[0])
+                self.robot.gesture.addBehavior("Instruct", "GESTURE_DIECTIC", Instruction[0])
                 self.speech_token.acquire()
                 self.robot.instruct()
                 self.speech_token.release()
@@ -977,10 +984,12 @@ class Instruct:
             if newState == "Silent_Listening_Instructing_H_Silent":
                 newState = "Waiting_Silent_H_Silent_Acting"
                 print newState + "\n"
-                self.robot.gaze.killBehavior("Instruct", "GAZE_INTIMACY")
+                self.robot.gesture.killBehavior("Instruct", "GESTURE_DIECTIC")
+                self.robot.gaze.killBehavior("Instruct", "GAZE_REFERENTIAL")
 
             if newState == "Waiting_Silent_H_Silent_Acting":
                 val = self.robot.speechRecognition(wait_time)
+                print val
                 if val == "I have a question":
                     newState = "Waiting_Silent_H_Speaking_Breakdown_request"
                     print newState + "\n"

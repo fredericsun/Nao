@@ -8,7 +8,7 @@ IP = "nao.local"
 PORT = 9559
 
 
-class Gaze():
+class Gesture():
     def __init__(self):
         self.Behaviors = {}  # all microinteractions and their current behaviors
         self.Protocols = []  # unchanging list of protocols for the group
@@ -34,9 +34,10 @@ class Gaze():
 
     def GestureDiectic(self, microinteraction, para):
         arm = ALProxy("ALMotion", IP, PORT)
+        arm.setStiffnesses("Body", 1.0)
         names = ["RShoulderPitch", "RShoulderRoll", "RElbowRoll", "RElbowYaw", "RWristYaw", "RHand"]
-        if para == "pick up a piece of bread and place it on the plate":
-            t = 3
+        if para.strip() == "pick up a piece of bread and place it on the plate":
+            t = 1
         elif para == "pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
             t = 5
         else:
@@ -46,6 +47,10 @@ class Gaze():
         arm.setAngles(names, angles_sandwich, 0.1)
         time.sleep(t)
         arm.setAngles(names, angles_plate, 0.1)
+        time.sleep(t)
+        posture = ALProxy("ALRobotPosture", IP, PORT)
+        posture.goToPosture("Sit", 1.0)
+        arm.rest()
         print "Gesture diectic!"
 
     def GestureMetaphoric(self, microinteraction):
@@ -63,12 +68,12 @@ class Gaze():
         # add the behavior to the list of currently-active behaviors
         self.Behaviors[microinteraction] = behavior
         if behavior == "GESTURE_NONE":
-            self.GESTURE_NONE[microinteraction] = threading.Thread(target=self.GESTURE_NONE, args=(microinteraction,))
-        if behavior == "GESTURE_REFERENTIAL":
-            self.GESTURE_DIECTIC[microinteraction] = threading.Thread(target=self.GESTURE_DIECTIC,
+            self.GESTURE_NONE[microinteraction] = threading.Thread(target=self.GestureNone, args=(microinteraction,))
+        if behavior == "GESTURE_DIECTIC":
+            self.GESTURE_DIECTIC[microinteraction] = threading.Thread(target=self.GestureDiectic,
                                                                        args=(microinteraction, para))
-        if behavior == "GESTURE_COGNITIVE":
-            self.GESTURE_METAPHORIC[microinteraction] = threading.Thread(target=self.GESTURE_METAPHORIC,
+        if behavior == "GESTURE_METAPHORIC":
+            self.GESTURE_METAPHORIC[microinteraction] = threading.Thread(target=self.GestureMetaphoric,
                                                                         args=(microinteraction,))
         # choose a behavior to run based on the protocol that currently applies
         self.ChooseProcess()
@@ -99,6 +104,7 @@ class Gaze():
         self.loop_lock[0] = True
 
         # choose a behavior to run based on the protocol that currently applies
+        print "Attempting to kill gesture..."
         self.ChooseProcess()
 
     def ChooseProcess(self):
@@ -127,7 +133,7 @@ class Gaze():
         if protocol != None:
             behavior = protocol.ChoiceBehavior
             microinteraction = protocol.ChoiceMicro
-        else:  # else, just pick the highest ranking behavior!
+        else: # else, just pick the highest ranking behavior!
             for micro, beh in self.Behaviors.iteritems():
                 if beh == "GESTURE_DIECTIC" or beh == "GESTURE_METAPHORIC":
                     microinteraction = micro
@@ -137,7 +143,6 @@ class Gaze():
                     microinteraction = micro
                     behavior = beh
 
-
         # kill the current behavior and start another
         if (self.CurrMicrointeraction != None):
             self.loop_lock[0] = False
@@ -145,6 +150,7 @@ class Gaze():
             thread = threads[self.CurrMicrointeraction]
             thread.join()
             del threads[microinteraction]
+            print "gesture killed"
 
         # if there is a new process, start the new process
         if (behavior != None):

@@ -75,6 +75,7 @@ class Gaze():
 		self.GazeIntimacy(microinteraction)
 
 	def GazeReferential(self, microinteraction, para):
+		print "Gaze referential!"
 		head = ALProxy("ALMotion", IP, PORT)
 		names = ["HeadPitch", "HeadYaw"]
 		if microinteraction == "Handoff":
@@ -84,8 +85,9 @@ class Gaze():
 				angles = [0.37885594367980957, -0.6075060367584229]
 			head.setAngles(names, angles, 0.1)
 		if microinteraction == "Instruct":
-			if para == "pick up a piece of bread and place it on the plate":
-				t = 3
+			print para
+			if para.strip() == "pick up a piece of bread and place it on the plate":
+				t = 1
 			elif para == "pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
 				t = 5
 			else:
@@ -94,8 +96,7 @@ class Gaze():
 			angles_plate = [0.4724442660808563, 0.22238802909851074]
 			head.setAngles(names, angles_sandwich, 0.1)
 			time.sleep(t)
-			head.setAngles(names, angles_plate, 0.1)
-		print "Gaze referential!"
+			head.setAngles(names, angles_plate, 0.2)
 
 	def GazeElse(self, microinteraction):
 		while self.loop_lock[0] == True:
@@ -153,6 +154,7 @@ class Gaze():
 		self.loop_lock[0] = True
 
 		# choose a behavior to run based on the protocol that currently applies
+		print "attempting to kill gaze"
 		self.ChooseProcess()
 
 	def ChooseProcess(self):
@@ -170,7 +172,7 @@ class Gaze():
 		protocol = None
 		for prot in self.Protocols:
 			goodProt = True
-			for microinteraction,behavior in prot.iteritems():
+			for microinteraction, behavior in prot.iteritems():
 				if behaviors[microinteraction] != behavior:
 					goodProt = False
 
@@ -201,6 +203,7 @@ class Gaze():
 			thread = threads[self.CurrMicrointeraction]
 			thread.join()
 			del threads[microinteraction]
+			print "gaze killed"
 
 		# if there is a new process, start the new process
 		if (behavior != None):
