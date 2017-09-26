@@ -50,10 +50,18 @@ class Gaze():
 			head_intimacy.setAngles("HeadYaw", random.choice(angle_list), 0.1)
 			print "Gaze intimacy!"
 			time_length = np.random.normal(1.96, 0.32)
-			time.sleep(time_length)
+
+			# check every 0.5 seconds if the loop_lock still holds
+			if self.checkLoopLock(time_length) == True:
+				self.GazeAt(microinteraction)
+				break
+
 			self.GazeAt(microinteraction)
 			time_between = np.random.normal(4.75, 1.39)
-			time.sleep(time_between)
+
+			# check every 0.5 seconds if the loop_lock still holds
+			if self.checkLoopLock(time_between) == True:
+				break
 
 	def GazeCognitive(self, microinteraction):
 		# look up and then down
@@ -202,6 +210,21 @@ class Gaze():
 			self.CurrMicrointeraction = microinteraction
 			self.CurrBehavior = behavior
 			thread.start()
+
+	def checkLoopLock(self, timer):
+		leave = False
+
+		while timer > 0:
+			if self.loop_lock[0] == False:
+				leave = True
+				break
+			timeToSleep = min(timer, 0.5)
+			timer -= 0.5
+			time.sleep(timeToSleep)
+
+		return leave
+
+
 
 		
 

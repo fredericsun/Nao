@@ -7,6 +7,8 @@ import sys
 import numpy as np
 
 from gaze import Gaze
+from naoqi import ALModule
+from naoqi import ALBroker
 from naoqi import ALProxy
 
 ##########################
@@ -22,6 +24,9 @@ Instruction = []
 
 # keep a list of all subscribers so that if the script is killed, we can unsubscribe from everything
 subscribedTo = {}
+
+robot = None
+speechMem = None
 
 ##########################
 # EXIT HANDLING
@@ -39,11 +44,12 @@ signal.signal(signal.SIGINT, handle_exit)
 ##########################
 # NAO FUNCTIONALITY
 ##########################
-class Nao(object):
-    name = ""
+class Nao(ALModule):
     def __init__(self, name):
         self.name = name
+        ALModule.__init__(self, self.name)
         self.gaze = Gaze()
+        self.loop_lock = False
         autoMove = ALProxy("ALAutonomousMoves", IP, PORT)
         autoMove.setExpressiveListeningEnabled(False)
 
@@ -59,9 +65,24 @@ class Nao(object):
         # update the list of subscribed
         subscribedTo[speechRec] = "speechID"
         speechRec.subscribe("speechID")
-
-        time.sleep(sec)
+        global speechMem
         speechMem = ALProxy("ALMemory", IP, PORT)
+
+        #time.sleep(sec)
+        speechMem.subscribeToEvent("WordRecognized",
+            "robot",
+            "onWordRecognized")
+        while sec > 0:
+            if (self.loop_lock):
+                self.loop_lock = False
+                break
+
+            timeToSleep = min(sec, 0.5)
+            sec -= 0.5
+            time.sleep(timeToSleep)
+
+        speechMem.unsubscribeToEvent("WordRecognized",
+            "robot")
         val = speechMem.getData("WordRecognized")
         speechRec.pause(True)
 
@@ -73,6 +94,9 @@ class Nao(object):
             return None
         return val[0]
 
+    def onWordRecognized(self, *_args):
+        print "Nao has recognized a word!"
+        self.loop_lock = True
 
     def faceDetection(self):
         faceDet = ALProxy("ALFaceDetection", IP, PORT)
@@ -960,14 +984,14 @@ class Instruct:
                 if val == "I have a question":
                     newState = "Waiting_Silent_H_Speaking_Breakdown_request"
                     print newState + "\n"
-                elif self.robot.movementDetected(wait_time) != []:
+                elif val == "I am finished":
+                    newState = "Waiting_Silent_H_Silent_Finish"
+                    print newState + "\n"
+                else:
                     newState = "Silent_H_Silent_End_Acting"
                     print newState + "\n"
                     output = "human_busy"
                     break
-                elif val == "I am finished":
-                    newState = "Waiting_Silent_H_Silent_Finish"
-                    print newState + "\n"
 
             if newState == "Waiting_Silent_H_Speaking_Breakdown_request":
                 newState = "Waiting_Silent_H_Silent_Breakdown_request"
@@ -977,8 +1001,8 @@ class Instruct:
                 self.robot.gaze.addBehavior("Instruct", "GAZE_AT", None)
                 newState = "Silent_H_Silent_End_Breakdown_request"
                 print newState + "\n"
-                self.robot.gaze.killBehavior("Instruct", "GAZE_INTIMACY")
-                output = "human_ready"
+                self.robot.gaze.killBehavior("Instruct", "GAZE_AT")
+                output = "human_ignore"
                 break
 
             if newState == "Waiting_Silent_H_Silent_Finish":
@@ -1076,6 +1100,13 @@ class Group:
 # RUN
 ##########################
 if __name__ == "__main__":
+    myBroker = ALBroker("myBroker",
+       "0.0.0.0",   # listen to anyone
+       0,           # find a free port and use it
+       IP,         # parent broker IP
+       PORT)       # parent broker port
+
+    global robot
     robot = Nao("robot")
     pool = []
     speech_token = threading.Lock()
@@ -1161,7 +1192,7 @@ if __name__ == "__main__":
                         speechList.append(para.attrib['val'])
                 comment = Comment(robot, groupid, microid, speechList, speech_token)
                 interaction[groupid - 1].append(comment)
-            if name.text == "Inst_Action":
+            if name.text == "Instruction":
                 for para in elem.iterfind('parameter'):
                     if para.text == "Instruction":
                         Instruction.append(para.attrib['val'])
