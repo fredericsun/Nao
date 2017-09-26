@@ -58,10 +58,35 @@ class Gaze():
 	def GazeCognitive(self, microinteraction):
 		# look up and then down
 		# call GazeIntimacy
+		head_cognition = ALProxy("ALMotion", IP, PORT)
+		head_cognition.setAngles("HeadPitch", -0.3491, 0.1)
+		head_cognition.setAngles("HeadPitch", 0.3839, 0.1)
+		time_length = np.random.normal(1.96, 0.32)
+		time.sleep(time_length)
 		print "Gaze cognitive! Intimacy should follow."
 		self.GazeIntimacy(microinteraction)
 
-	def GazeReferential(self, microinteraction):
+	def GazeReferential(self, microinteraction, para):
+		head = ALProxy("ALMotion", IP, PORT)
+		names = ["HeadPitch", "HeadYaw"]
+		if microinteraction == "Handoff":
+			if para == "left":
+				angles = [0.3359041213989258, 0.3819241523742676]
+			else:
+				angles = [0.37885594367980957, -0.6075060367584229]
+			head.setAngles(names, angles, 0.1)
+		if microinteraction == "Instruct":
+			if para == "pick up a piece of bread and place it on the plate":
+				t = 3
+			elif para == "pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
+				t = 5
+			else:
+				t = 5
+			angles_sandwich = [0.40953004360198975, -0.5507478713989258]
+			angles_plate = [0.4724442660808563, 0.22238802909851074]
+			head.setAngles(names, angles_sandwich, 0.1)
+			time.sleep(t)
+			head.setAngles(names, angles_plate, 0.1)
 		print "Gaze referential!"
 
 	def GazeElse(self, microinteraction):
@@ -77,13 +102,13 @@ class Gaze():
 	def RemoveProtocols(self):
 		self.Protocols = []
 
-	def addBehavior(self, microinteraction, behavior):
+	def addBehavior(self, microinteraction, behavior, para):
 		# add the behavior to the list of currently-active behaviors
 		self.Behaviors[microinteraction] = behavior
 		if behavior == "GAZE_AT":
 			self.GAZE_AT[microinteraction] = threading.Thread(target=self.GazeAt, args=(microinteraction, ))
 		if behavior == "GAZE_REFERENTIAL":
-			self.GAZE_REFERENTIAL[microinteraction] = threading.Thread(target=self.GazeReferential, args=(microinteraction, ))
+			self.GAZE_REFERENTIAL[microinteraction] = threading.Thread(target=self.GazeReferential, args=(microinteraction, para ))
 		if behavior == "GAZE_COGNITIVE":
 			self.GAZE_COGNITIVE[microinteraction] = threading.Thread(target=self.GazeCognitive, args=(microinteraction, ))
 		if behavior == "GAZE_INTIMACY":
