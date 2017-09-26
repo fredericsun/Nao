@@ -216,11 +216,12 @@ class Nao(ALModule):
         status = False
         while (status == False):
             rawStatus = self.touchDetected()
-            #print rawStatus
+            print rawStatus
             for array in rawStatus:
-                if array[0] == 'RHand':
-                    status = array[1]
-                    break
+                if array[0] == 'RHand' or array[0] == 'RHand/Touch/Left' or array[0] == 'RHand/Touch/Right' or array[0] == 'RHand/Touch/Back':
+                    if array[1] == True:
+                        status = array[1]
+                        break
             time.sleep(.1)
         return status
 
@@ -602,6 +603,7 @@ class Handoff:
             if StartState == "Start_Present_Arm_Retracted":
                 self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
                 print StartState + "\n"
+                '''
                 if self.side == "left":
                     self.larm_token.acquire()
                     self.robot.leftarmRetracted()
@@ -616,6 +618,7 @@ class Handoff:
                     self.rhand_token.acquire()
                     self.robot.closeRighthand()
                     self.rhand_token.release()
+                '''
                 newState = "Present_Extending_Arm_Extended"
                 self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
                 print newState + "\n"
@@ -632,7 +635,7 @@ class Handoff:
                     #t1.join()
                     #t2.join()
                     self.larm_token.release()
-                    self.robot.gaze.addBehavior("Handoff", "GAZE_REFERENTIAL")
+                    self.robot.gaze.killBehavior("Handoff", "GAZE_REFERENTIAL")
                 elif self.side == "right":
                     self.robot.gaze.addBehavior("Handoff", "GAZE_REFERENTIAL", "right")
                     self.rarm_token.acquire()
@@ -644,7 +647,7 @@ class Handoff:
                     #t1.join()
                     #t2.join()
                     self.rarm_token.release()
-                    self.robot.gaze.addBehavior("Handoff", "GAZE_REFERENTIAL")
+                    self.robot.gaze.killBehavior("Handoff", "GAZE_REFERENTIAL")
                 newState = "Releasing_Contacted_Arm_Extended"
                 print newState + "\n"
 
@@ -709,19 +712,17 @@ class Handoff:
                     touch = self.robot.waitUntilTouchDetected()
                     print touch
                     if self.side == "left":
-                        if touch[4][1] == True:
-                            self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
-                            self.lhand_token.acquire()
-                            self.robot.openLefthand()
-                            self.lhand_token.release()
-                            self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
+                        self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
+                        self.lhand_token.acquire()
+                        self.robot.openLefthand()
+                        self.lhand_token.release()
+                        self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
                     elif self.side == "right":
-                        if touch[1][1] == True:
-                            self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
-                            self.rhand_token.acquire()
-                            self.robot.openRighthand()
-                            self.rhand_token.release()
-                            self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
+                        self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
+                        self.rhand_token.acquire()
+                        self.robot.openRighthand()
+                        self.rhand_token.release()
+                        self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
                     newState = "Releasing_Present_Arm_Extended"
                     print newState + "\n"
 

@@ -43,6 +43,9 @@ class Gaze():
 		angles = [0, 0]
 		head_at_human.setAngles(names, angles, 0.1)
 		print "Gaze at!"
+
+		while self.loop_lock[0] == True:
+			time.sleep(0.1)
 		
 	def GazeIntimacy(self, microinteraction):
 		print "Gaze intimacy!"
@@ -102,6 +105,9 @@ class Gaze():
 			time.sleep(t)
 			head.setAngles(names, angles_plate, 0.2)
 
+		while self.loop_lock[0] == True:
+			time.sleep(0.1)
+
 	def GazeElse(self, microinteraction):
 		while self.loop_lock[0] == True:
 			print "Gaze else!"
@@ -135,43 +141,48 @@ class Gaze():
 		self.lock.release()
 
 	def killBehavior(self, microinteraction, behavior):
-		# remove the behavior from the list of currently-active behaviors
-		del self.Behaviors[microinteraction]
-		# print the current processes
-		for key,value in self.Behaviors.iteritems():
-			print "~~~~"
-			print key
-			print value
-			print "~~~~"
-
-		# get the thread, remove it
-		threads = self.threadDicts[behavior]
-		thread = threads[microinteraction]
-		del threads[microinteraction]
-
-		# if the one we want to kill is the one that is currently running, kill it now and wait for it to die
-		if self.CurrMicrointeraction == microinteraction:
-			self.loop_lock[0] = False
-			thread.join()
-			self.CurrMicrointeraction = None
-			self.CurrBehavior = None
-
-		# reset the loop_lock
-		self.loop_lock[0] = True
-
-		# choose a behavior to run based on the protocol that currently applies
-		print "attempting to kill gaze"
+		# IF it still exists, then remove the behavior from the list of currently-active behaviors
 		self.lock.acquire()
-		self.ChooseProcess()
+		if microinteraction in self.Behaviors:
+			del self.Behaviors[microinteraction]
+			# print the current processes
+			for key,value in self.Behaviors.iteritems():
+				print "~~~~"
+				print key
+				print value
+				print "~~~~"
+
+			# get the thread, remove it
+			threads = self.threadDicts[behavior]
+			thread = threads[microinteraction]
+			del threads[microinteraction]
+
+			# if the one we want to kill is the one that is currently running, kill it now and wait for it to die
+			if self.CurrMicrointeraction == microinteraction:
+				print microinteraction
+				print "we are trying to kill the process that is currently running"
+				self.loop_lock[0] = False
+				thread.join()
+				self.CurrMicrointeraction = None
+				self.CurrBehavior = None
+
+			# reset the loop_lock
+			self.loop_lock[0] = True
+
+			# choose a behavior to run based on the protocol that currently applies
+			print "attempting to kill gaze"
+			self.ChooseProcess()
 		self.lock.release()
 
-	def ChooseProcess(self):
+	def FindBestProcess(self):
 		# print the current processes
+		print "HERE ARE ALL THE VALUES"
 		for key,value in self.Behaviors.copy().iteritems():
 			print "~~~~"
 			print key
 			print value
 			print "~~~~"
+		print "DONE PRINTING ALL THE VALUES"
 
 
 		microinteraction = None
@@ -205,23 +216,67 @@ class Gaze():
 					behavior = beh
 					break
 
+		return microinteraction,behavior
+
+	def ChooseProcess(self):
+		# print the current processes
+		microinteraction,behavior = self.FindBestProcess()
+
+		# If there is a currently-running behavior
+		if self.CurrMicrointeraction != None and self.CurrBehavior != None:
+			# if that is not the best behavior anymore, usurp
+			if self.CurrMicrointeraction != microinteraction or self.CurrBehavior != behavior:
+				# get the thread, remove it
+				threads = self.threadDicts[self.CurrBehavior]
+				thread = threads[self.CurrMicrointeraction]
+				del threads[self.CurrMicrointeraction]
+				del self.Behaviors[self.CurrMicrointeraction]
+
+				self.loop_lock[0] = False
+				thread.join()
+
+				# reset the loop_lock, begin the next thread
+				self.loop_lock[0] = True
+				self.CurrMicrointeraction = microinteraction
+				self.CurrBehavior = behavior
+				thread = self.threadDicts[behavior][microinteraction]
+				thread.start()
+
+		# else (we just killed something, because things can't die on their own anymore)
+		else:
+			# IF some threads exist, run the best
+			if microinteraction != None and behavior != None:
+				self.loop_lock[0] = True
+				self.CurrMicrointeraction = microinteraction
+				self.CurrBehavior = behavior
+				thread = self.threadDicts[behavior][microinteraction]
+				thread.start()
+
+
+		'''
 		# kill the current behavior and start another
 		if (self.CurrMicrointeraction != None):
 			self.loop_lock[0] = False
 			threads = self.threadDicts[self.CurrBehavior]
-			thread = threads[self.CurrMicrointeraction]
-			thread.join()
-			del threads[microinteraction]
-			print "gaze killed"
+			if self.CurrMicrointeraction in threads:
+				thread = threads[self.CurrMicrointeraction]
+				thread.join()
+				del threads[self.CurrMicrointeraction]
+				print "gaze killed"
 
 		# if there is a new process, start the new process
 		if (behavior != None):
 			self.loop_lock[0] = True
 			threads = self.threadDicts[behavior]
-			thread = threads[microinteraction]
-			self.CurrMicrointeraction = microinteraction
-			self.CurrBehavior = behavior
-			thread.start()
+			if microinteraction in threads:
+				thread = threads[microinteraction]
+				self.CurrMicrointeraction = microinteraction
+				self.CurrBehavior = behavior
+				if not thread.isAlive():
+					thread.start()
+			else:
+				self.CurrMicrointeraction = None
+		'''
 
 	def checkLoopLock(self, timer):
 		leave = False
@@ -235,6 +290,14 @@ class Gaze():
 			time.sleep(timeToSleep)
 
 		return leave
+
+	def getNumThreads(self):
+		counter = 0
+		for key1,val1 in self.threadDicts:
+			for key2,val2 in val1:
+				counter += 1
+		return counter
+
 
 
 
