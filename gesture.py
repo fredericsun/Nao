@@ -31,6 +31,10 @@ class Gesture():
 
     def GestureNone(self, microinteraction):
         print "Gesture none!"
+        motion = ALProxy("ALMotion", IP, PORT)
+        posture = ALProxy("ALRobotPosture", IP, PORT)
+        posture.goToPosture("Sit", 1.0)
+        motion.rest()
 
     def GestureDiectic(self, microinteraction, para):
         arm = ALProxy("ALMotion", IP, PORT)
@@ -48,9 +52,6 @@ class Gesture():
         time.sleep(t)
         arm.setAngles(names, angles_plate, 0.1)
         time.sleep(t)
-        posture = ALProxy("ALRobotPosture", IP, PORT)
-        posture.goToPosture("Sit", 1.0)
-        arm.rest()
         print "Gesture diectic!"
 
     def GestureMetaphoric(self, microinteraction):
@@ -64,7 +65,7 @@ class Gesture():
     def RemoveProtocols(self):
         self.Protocols = []
 
-    def addBehavior(self, microinteraction, behavior, para):
+    def addBehavior(self, microinteraction, behavior, para=None):
         # add the behavior to the list of currently-active behaviors
         self.Behaviors[microinteraction] = behavior
         if behavior == "GESTURE_NONE":

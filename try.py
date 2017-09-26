@@ -988,6 +988,7 @@ class Instruct:
                 self.robot.gaze.killBehavior("Instruct", "GAZE_REFERENTIAL")
 
             if newState == "Waiting_Silent_H_Silent_Acting":
+                self.robot.gesture.addBehavior("Instruct", "GESTURE_NONE")
                 val = self.robot.speechRecognition(wait_time)
                 print val
                 if val == "I have a question":
@@ -1000,7 +1001,10 @@ class Instruct:
                     newState = "Silent_H_Silent_End_Acting"
                     print newState + "\n"
                     output = "human_busy"
+                    self.robot.gesture.killBehavior("Instruct", "GESTURE_NONE")
                     break
+
+                self.robot.gesture.killBehavior("Instruct", "GESTURE_NONE")
 
             if newState == "Waiting_Silent_H_Speaking_Breakdown_request":
                 newState = "Waiting_Silent_H_Silent_Breakdown_request"
