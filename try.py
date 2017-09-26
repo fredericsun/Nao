@@ -21,7 +21,6 @@ wordList = ["hello", "nice to meet you", "bye", "see you", "I am finished", "I h
 QuestionList = []
 linkList = []
 AnswerList = []
-Instruction = []
 
 # keep a list of all subscribers so that if the script is killed, we can unsubscribe from everything
 subscribedTo = {}
@@ -237,9 +236,9 @@ class Nao(ALModule):
         answer = ALProxy("ALTextToSpeech", IP, PORT)
         answer.say(random.choice(handoff_question[mark]))
 
-    def instruct(self):
+    def instruct(self, instruction):
         instruct = ALProxy("ALTextToSpeech", IP, PORT)
-        instruct.say(Instruction[0])
+        instruct.say(instruction)
 
     def repeat(self):
         repeat = ALProxy("ALTextToSpeech", IP, PORT)
@@ -949,11 +948,12 @@ class Answer:
             print 1
 
 class Instruct:
-    def __init__(self, robot, groupid, microid, speech_token):
+    def __init__(self, robot, groupid, microid, speech_token, instruction):
         self.groupid = groupid
         self.microid = microid
         self.robot = robot
         self.speech_token = speech_token
+        self.instruction = instruction
 
     def getGroup(self):
         return self.groupid
@@ -963,7 +963,7 @@ class Instruct:
 
     def execute(self, last_final_state, out_list):
         StartState = "Start_Silent_Listening_H_Silent"
-        wait_time = 5
+        wait_time = 10
         while True:
             if StartState == "Start_Silent_Listening_H_Silent":
                 self.robot.gaze.addBehavior("Instruct", "GAZE_AT", None)
@@ -973,10 +973,10 @@ class Instruct:
                 self.robot.gaze.killBehavior("Instruct", "GAZE_AT")
 
             if newState == "Speaking_Listening_Instructing_H_Silent":
-                self.robot.gaze.addBehavior("Instruct", "GAZE_REFERENTIAL", Instruction[0])
-                self.robot.gesture.addBehavior("Instruct", "GESTURE_DIECTIC", Instruction[0])
+                self.robot.gaze.addBehavior("Instruct", "GAZE_REFERENTIAL", self.instruction)
+                self.robot.gesture.addBehavior("Instruct", "GESTURE_DIECTIC", self.instruction)
                 self.speech_token.acquire()
-                self.robot.instruct()
+                self.robot.instruct(self.instruction)
                 self.speech_token.release()
                 newState = "Silent_Listening_Instructing_H_Silent"
                 print newState + "\n"
@@ -1206,10 +1206,11 @@ if __name__ == "__main__":
                 comment = Comment(robot, groupid, microid, speechList, speech_token)
                 interaction[groupid - 1].append(comment)
             if name.text == "Instruction":
+                param = None
                 for para in elem.iterfind('parameter'):
                     if para.text == "Instruction":
-                        Instruction.append(para.attrib['val'])
-                instruct = Instruct(robot, groupid, microid, speech_token)
+                        param = para.attrib['val']
+                instruct = Instruct(robot, groupid, microid, speech_token, param)
                 interaction[groupid - 1].append(instruct)
             if name.text == "Answering":
                 answer = Answer(robot, groupid, microid, speech_token)

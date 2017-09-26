@@ -40,15 +40,16 @@ class Gesture():
         arm = ALProxy("ALMotion", IP, PORT)
         arm.setStiffnesses("Body", 1.0)
         names = ["RShoulderPitch", "RShoulderRoll", "RElbowRoll", "RElbowYaw", "RWristYaw", "RHand"]
-        if para.strip() == "pick up a piece of bread and place it on the plate":
+        if para.strip() == "First instruction. Pick up a piece of bread and place it on the plate":
             t = 1
-        elif para == "pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
-            t = 5
+        elif para == "Second instruction. Pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
+            t = 2
         else:
-            t = 5
+            t = 2.5
         angles_sandwich = [0.7532360553741455, -0.4786500930786133, 0.31604599952697754, 0.7899680137634277, -0.6059720516204834, 0.7455999851226807]
         angles_plate = [0.7823820114135742, 0.3141592741012573, 0.5154659748077393, 0.6749181747436523, -0.7470998764038086, 0.806399941444397]
-        arm.setAngles(names, angles_sandwich, 0.1)
+        time.sleep(1)
+        arm.setAngles(names, angles_sandwich, 0.2)
         time.sleep(t)
         arm.setAngles(names, angles_plate, 0.1)
         time.sleep(t)

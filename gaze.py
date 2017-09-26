@@ -86,14 +86,15 @@ class Gaze():
 			head.setAngles(names, angles, 0.1)
 		if microinteraction == "Instruct":
 			print para
-			if para.strip() == "pick up a piece of bread and place it on the plate":
+			if para.strip() == "First instruction. Pick up a piece of bread and place it on the plate":
 				t = 1
-			elif para == "pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
-				t = 5
+			elif para == "Second instruction. Pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
+				t = 1
 			else:
-				t = 5
+				t = 2.5
 			angles_sandwich = [0.40953004360198975, -0.5507478713989258]
 			angles_plate = [0.4724442660808563, 0.22238802909851074]
+			time.sleep(1)
 			head.setAngles(names, angles_sandwich, 0.1)
 			time.sleep(t)
 			head.setAngles(names, angles_plate, 0.2)
