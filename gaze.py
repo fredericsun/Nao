@@ -1,7 +1,9 @@
 import operator
 import threading
+from threading import Lock
 import time
 import random
+from copy import copy
 from naoqi import ALProxy
 import numpy as np
 from Protocol import Protocol
@@ -33,6 +35,7 @@ class Gaze():
 
 		# self.loop_lock
 		self.loop_lock = [True]
+		self.lock = Lock()
 
 	def GazeAt(self, microinteraction):
 		head_at_human = ALProxy("ALMotion", IP, PORT)
@@ -127,7 +130,9 @@ class Gaze():
 			self.GAZE_ELSE[microinteraction] = threading.Thread(target=self.GazeElse, args=(microinteraction, ))
 
 		# choose a behavior to run based on the protocol that currently applies
+		self.lock.acquire()
 		self.ChooseProcess()
+		self.lock.release()
 
 	def killBehavior(self, microinteraction, behavior):
 		# remove the behavior from the list of currently-active behaviors
@@ -156,15 +161,18 @@ class Gaze():
 
 		# choose a behavior to run based on the protocol that currently applies
 		print "attempting to kill gaze"
+		self.lock.acquire()
 		self.ChooseProcess()
+		self.lock.release()
 
 	def ChooseProcess(self):
 		# print the current processes
-		for key,value in self.Behaviors.iteritems():
+		for key,value in self.Behaviors.copy().iteritems():
 			print "~~~~"
 			print key
 			print value
 			print "~~~~"
+
 
 		microinteraction = None
 		behavior = None
