@@ -1129,7 +1129,7 @@ if __name__ == "__main__":
     lhand_token = threading.Lock()
     rhand_token = threading.Lock()
 
-#questionlist parser
+    #questionlist parser
     question = []
     answer = []
     handoff_question = []
@@ -1147,11 +1147,12 @@ if __name__ == "__main__":
         handoff_question.append(question)
         handoff_answer.append(answer)
 
-#xml parser
+    #xml parser
     interaction = []
     transition = []
     tree = ET.parse('interaction.xml')
     root = tree.getroot()
+    protocols = {}
 
     #get group number
     group_num = 0
@@ -1165,10 +1166,24 @@ if __name__ == "__main__":
     for x in range(group_num):
         interaction.append([])
 
-     #get the initial group
+    #get the initial group AND the behavioral protocols for each group
     for group in root.iterfind('group'):
         if group.attrib['init'] == "true":
             init_state = int(group.attrib['id'])
+
+        protocols[group] = []
+
+        for protocol in group.iterfind('protocol'):
+            MicroBehaviorPairs = {}
+            for pair in protocol.iterfind('pair'):
+                MidroBehaviorPairs[pair.attrib['micro']] = pair.attrib['beh']
+            microFix = ""
+            behFix = ""
+            for fix in protocol.iterfind('fix'):
+                microFix = fix.attrib['micro']
+                behFix = fix.attrib['beh'] 
+
+                protocols[group].append(Protocol(MicroBehaviorPairs, microFix, behFix))
 
     while groupid <= group_num:
         for elem in root[groupid].iterfind('micro'):

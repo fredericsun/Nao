@@ -192,7 +192,7 @@ class Gaze():
 		protocol = None
 		for prot in self.Protocols:
 			goodProt = True
-			for microinteraction, behavior in prot.iteritems():
+			for microinteraction, behavior in prot.MicrointBehaviorPairs.iteritems():
 				if behaviors[microinteraction] != behavior:
 					goodProt = False
 
