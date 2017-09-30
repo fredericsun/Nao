@@ -1173,12 +1173,18 @@ if __name__ == "__main__":
     while groupid <= group_num:
         for elem in root[groupid].iterfind('micro'):
             name = elem.find('name')
+
+            # greeter
             if name.text == "Greeter":
                 greeter = Greeter(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(greeter)
+
+            # farewell
             if name.text == "Farewell":
                 farewell = Farewell(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(farewell)
+
+            # questioning
             if name.text == "Questioning":
                 for para in elem.iterfind('parameter'):
                     for word in para.iterfind('item'):
@@ -1189,6 +1195,8 @@ if __name__ == "__main__":
                         QuestionList.append(para.attrib['val'])
                 question = Question(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(question)
+
+            # handoff
             if name.text == "Handoff":
                 side = None
                 give_receive = None
@@ -1199,6 +1207,8 @@ if __name__ == "__main__":
                         give_receive = para.attrib['val']
                 handoff = Handoff(robot, groupid, microid, larm_token, rarm_token, lhand_token, rhand_token, side, give_receive)
                 interaction[groupid - 1].append(handoff)
+
+            # comment
             if name.text == "Comment":
                 speechList = []
                 for para in elem.iterfind('parameter'):
@@ -1206,6 +1216,8 @@ if __name__ == "__main__":
                         speechList.append(para.attrib['val'])
                 comment = Comment(robot, groupid, microid, speechList, speech_token)
                 interaction[groupid - 1].append(comment)
+
+            # instruction
             if name.text == "Instruction":
                 param = None
                 for para in elem.iterfind('parameter'):
@@ -1213,9 +1225,13 @@ if __name__ == "__main__":
                         param = para.attrib['val']
                 instruct = Instruct(robot, groupid, microid, speech_token, param)
                 interaction[groupid - 1].append(instruct)
+
+            # answering
             if name.text == "Answering":
                 answer = Answer(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(answer)
+
+            # wait
             if name.text == "Wait":
                 speechRecog = None
                 waitTime = 5
