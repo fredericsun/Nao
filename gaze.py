@@ -123,6 +123,7 @@ class Gaze():
 
 	def addBehavior(self, microinteraction, behavior, para):
 		# add the behavior to the list of currently-active behaviors
+		self.lock.acquire()
 		self.Behaviors[microinteraction] = behavior
 		if behavior == "GAZE_AT":
 			self.GAZE_AT[microinteraction] = threading.Thread(target=self.GazeAt, args=(microinteraction, ))
@@ -136,7 +137,6 @@ class Gaze():
 			self.GAZE_ELSE[microinteraction] = threading.Thread(target=self.GazeElse, args=(microinteraction, ))
 
 		# choose a behavior to run based on the protocol that currently applies
-		self.lock.acquire()
 		self.ChooseProcess()
 		self.lock.release()
 
@@ -189,22 +189,30 @@ class Gaze():
 		behavior = None
 
 		# is there a protocol that matches up with the current set of behaviors?
+		print "CHECKING THE PROTOCOL"
 		protocol = None
 		for prot in self.Protocols:
 			goodProt = True
-			for microinteraction, behavior in prot.MicrointBehaviorPairs.iteritems():
-				if behaviors[microinteraction] != behavior:
+			for mic, beh in prot.MicrointBehaviorPairs.iteritems():
+				print mic
+				if mic not in self.Behaviors or self.Behaviors[mic] != beh:
+					print "THIS IS NOT A GOOD PROT"
 					goodProt = False
 
 			if goodProt:
 				protocol = prot
 				break
 
+		print 'Current microinteracton is {}'.format(microinteraction)
+
 		if protocol != None:
+			print "SELECTING A PROTOCOL"
 			behavior = protocol.ChoiceBehavior
 			microinteraction = protocol.ChoiceMicro
 		else: # else, just pick the highest ranking behavior!
+			print "SELECTING THE BEST POSSIBLE MICRO-BEH"
 			for micro, beh in self.Behaviors.iteritems():
+				print micro
 				if beh == "GAZE_ELSE" and microinteraction == None:
 					microinteraction = micro
 					behavior = beh
@@ -216,6 +224,7 @@ class Gaze():
 					behavior = beh
 					break
 
+		print 'Chosen microinteracton is {}'.format(microinteraction)
 		return microinteraction,behavior
 
 	def ChooseProcess(self):

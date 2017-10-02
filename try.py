@@ -8,6 +8,7 @@ import numpy as np
 
 from gaze import Gaze
 from gesture import Gesture
+from Protocol import Protocol
 from naoqi import ALModule
 from naoqi import ALBroker
 from naoqi import ALProxy
@@ -161,12 +162,12 @@ class Nao(ALModule):
     def openLefthand(self):
         openl = ALProxy("ALMotion", IP, PORT)
         openl.openHand('LHand')
-        time.sleep(3)
+        #time.sleep(2)
 
     def openRighthand(self):
         openr = ALProxy("ALMotion", IP, PORT)
         openr.openHand('RHand')
-        time.sleep(3)
+        time.sleep(2)
 
     def closeLefthand(self):
         closel = ALProxy("ALMotion", IP, PORT)
@@ -218,7 +219,7 @@ class Nao(ALModule):
             rawStatus = self.touchDetected()
             print rawStatus
             for array in rawStatus:
-                if array[0] == 'RHand' or array[0] == 'RHand/Touch/Left' or array[0] == 'RHand/Touch/Right' or array[0] == 'RHand/Touch/Back':
+                if array[0] == 'RHand' or array[0] == 'RHand/Touch/Left' or array[0] == 'RHand/Touch/Right' or array[0] == 'RHand/Touch/Back' or array[0] == 'RFoot/Bumper/Right':
                     if array[1] == True:
                         status = array[1]
                         break
@@ -635,6 +636,8 @@ class Handoff:
                     #t1.join()
                     #t2.join()
                     self.larm_token.release()
+                    touch = self.robot.waitUntilTouchDetected()
+                    print touch
                     self.robot.gaze.killBehavior("Handoff", "GAZE_REFERENTIAL")
                 elif self.side == "right":
                     self.robot.gaze.addBehavior("Handoff", "GAZE_REFERENTIAL", "right")
@@ -647,6 +650,8 @@ class Handoff:
                     #t1.join()
                     #t2.join()
                     self.rarm_token.release()
+                    touch = self.robot.waitUntilTouchDetected()
+                    print touch
                     self.robot.gaze.killBehavior("Handoff", "GAZE_REFERENTIAL")
                 newState = "Releasing_Contacted_Arm_Extended"
                 print newState + "\n"
@@ -705,45 +710,52 @@ class Handoff:
                             output = "human_ready"
                             time.sleep(2)
                             break
+
             if self.give_receive == "give":
                 if newState == "Releasing_Contacted_Arm_Extended":
                     #touch = self.robot.touchDetected()
                     #time.sleep(wait_time)
-                    touch = self.robot.waitUntilTouchDetected()
-                    print touch
                     if self.side == "left":
                         self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
                         self.lhand_token.acquire()
                         self.robot.openLefthand()
+                        #time.sleep(1)
+                        self.robot.closeLeftHand()
                         self.lhand_token.release()
                         self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
                     elif self.side == "right":
                         self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
                         self.rhand_token.acquire()
+                        print "OPENING RIGHT HAND"
                         self.robot.openRighthand()
+                        #time.sleep(1)
+                        print "CLOSING RIGHT HAND"
+                        self.robot.closeRighthand()
                         self.rhand_token.release()
                         self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
                     newState = "Releasing_Present_Arm_Extended"
                     print newState + "\n"
 
                 if newState == "Releasing_Present_Arm_Extended":
-                    time.sleep(5)
+                    #time.sleep(5)
                     if self.side == "left":
                         self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
-                        self.lhand_token.acquire()
-                        self.robot.closeLefthand()
-                        self.lhand_token.release()
-                        time.sleep(1)
+                        #self.lhand_token.acquire()
+                        #self.robot.closeLefthand()
+                        #self.lhand_token.release()
+                        #time.sleep(1)
+                        print "ABOUT TO RETRACT ARM!"
                         self.larm_token.acquire()
                         self.robot.leftarmRetracted()
                         self.larm_token.release()
                         self.robot.gaze.killBehavior("Handoff", "GAZE_AT")
                     elif self.side == "right":
                         self.robot.gaze.addBehavior("Handoff", "GAZE_AT", None)
-                        self.rhand_token.acquire()
-                        self.robot.closeRighthand()
-                        self.rhand_token.release()
-                        time.sleep(1)
+                        #self.rhand_token.acquire()
+                        #self.robot.closeRighthand()
+                        #self.rhand_token.release()
+                        #time.sleep(1)
+                        print "ABOUT TO RETRACT ARM!"
                         self.rarm_token.acquire()
                         self.robot.rightarmRetracted()
                         self.rarm_token.release()
@@ -1171,21 +1183,29 @@ if __name__ == "__main__":
         if group.attrib['init'] == "true":
             init_state = int(group.attrib['id'])
 
-        protocols[group] = []
+    while groupid <= group_num:
 
-        for protocol in group.iterfind('protocol'):
+        protocols[groupid-1] = []
+
+        for protocol in root[groupid].iterfind('protocol'):
             MicroBehaviorPairs = {}
             for pair in protocol.iterfind('pair'):
-                MidroBehaviorPairs[pair.attrib['micro']] = pair.attrib['beh']
+                beh = pair.attrib['beh']
+                if beh == "GAZE_REFERENCE":
+                    beh = "GAZE_REFERENTIAL"
+                MicroBehaviorPairs[pair.attrib['micro']] = beh
             microFix = ""
             behFix = ""
             for fix in protocol.iterfind('fix'):
                 microFix = fix.attrib['micro']
                 behFix = fix.attrib['beh'] 
 
-                protocols[group].append(Protocol(MicroBehaviorPairs, microFix, behFix))
+                if behFix == "GAZE_REFERENCE":
+                    behFix = "GAZE_REFERENTIAL"
+                MicroBehaviorPairs[pair.attrib['micro']] = beh
 
-    while groupid <= group_num:
+                protocols[groupid-1].append(Protocol(MicroBehaviorPairs, microFix, behFix))
+
         for elem in root[groupid].iterfind('micro'):
             name = elem.find('name')
 
@@ -1286,6 +1306,12 @@ if __name__ == "__main__":
     loop = True
     while loop == True:
 
+
+
+        prots = protocols[currGroup]
+        robot.gaze.AddProtocols(prots)
+        robot.gesture.AddProtocols(prots)
+
         # obtain the protocols for this group
         # (for now, assume that there are no protocols)
 
@@ -1323,6 +1349,9 @@ if __name__ == "__main__":
 
         if key == False:
             loop = False
+
+        robot.gaze.RemoveProtocols()
+        robot.gesture.RemoveProtocols()
 
     print "done"
     '''
