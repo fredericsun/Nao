@@ -72,9 +72,13 @@ class Gaze():
 	def GazeCognitive(self, microinteraction):
 		# look up and then down
 		# call GazeIntimacy
+		names = ["HeadPitch", "HeadYaw"]
+		angles = [-0.2491, 0.1396]
 		head_cognition = ALProxy("ALMotion", IP, PORT)
-		head_cognition.setAngles("HeadPitch", -0.3491, 0.1)
-		head_cognition.setAngles("HeadPitch", 0.3839, 0.1)
+		head_cognition.setAngles(names, angles, 0.05)
+		head_cognition.setStiffnesses("Body", 1.0)
+		time.sleep(1)
+		head_cognition.setAngles(names, [0.0, 0.0], 0.1)
 		time_length = np.random.normal(1.96, 0.32)
 		time.sleep(time_length)
 		print "Gaze cognitive! Intimacy should follow."
@@ -92,21 +96,58 @@ class Gaze():
 			head.setAngles(names, angles, 0.1)
 		if microinteraction == "Instruct":
 			print para
+			instruction = -1
 			if para.strip() == "First instruction. Pick up a piece of bread and place it on the plate":
-				t = 1
+				t = 1.5
+				instruction = 1
 			elif para == "Second instruction. Pick up the slices of ham and cheese, and place the ham on top of the bread, and the cheese on top of the ham":
-				t = 1
+				t = 2
+				instruction = 2
 			else:
-				t = 2.5
+				t = 0.8
+				instruction = 3
 			angles_sandwich = [0.40953004360198975, -0.5507478713989258]
 			angles_plate = [0.4724442660808563, 0.22238802909851074]
-			time.sleep(1)
-			head.setAngles(names, angles_sandwich, 0.1)
+			if instruction == 1:
+				time.sleep(1)
+			elif instruction == 3:
+				time.sleep(2)
+			else:
+				time.sleep(1.5)
+			head.setAngles(names, angles_sandwich, 0.2)
 			time.sleep(t)
 			head.setAngles(names, angles_plate, 0.2)
 
-		while self.loop_lock[0] == True:
-			time.sleep(0.1)
+
+		if instruction == 2:
+			counterLim = 3
+		elif instruction == 3:
+			counterLim = 2
+		else:
+			counterLim = 0.2
+
+		if instruction == 3:
+			counter = 0
+			while self.loop_lock[0] == True and counter < 1.5:
+				time.sleep(0.1)
+				counter += 0.1
+
+			head.setAngles(names, angles_sandwich, 0.3)
+			time.sleep(1)
+			head.setAngles(names, angles_plate, 0.2)
+
+			counter = 0
+			while self.loop_lock[0] == True and counter < counterLim:
+				time.sleep(0.1)
+				counter += 0.1
+
+		else:
+			counter = 0
+			while self.loop_lock[0] == True and counter < counterLim:
+				time.sleep(0.1)
+				counter += 0.1
+
+		self.GazeAt(microinteraction)
 
 	def GazeElse(self, microinteraction):
 		while self.loop_lock[0] == True:
@@ -121,7 +162,7 @@ class Gaze():
 	def RemoveProtocols(self):
 		self.Protocols = []
 
-	def addBehavior(self, microinteraction, behavior, para):
+	def addBehavior(self, microinteraction, behavior, para=None):
 		# add the behavior to the list of currently-active behaviors
 		self.lock.acquire()
 		self.Behaviors[microinteraction] = behavior

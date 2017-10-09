@@ -21,7 +21,6 @@ PORT = 9559
 wordList = ["hello", "nice to meet you", "bye", "see you", "I am finished", "I have a question", "good", "can you repeat?", "I am ready"]
 QuestionList = []
 linkList = []
-AnswerList = []
 
 # keep a list of all subscribers so that if the script is killed, we can unsubscribe from everything
 subscribedTo = {}
@@ -145,7 +144,7 @@ class Nao(ALModule):
         #motionProxy.wakeUp()
         #postureProxy.goToPosture("Stand", 0.5)
         #greet.say("Hello. ^start(animations/Stand/Gestures/Hey_1) My name is Nao. Nice to meet you! ^wait(animations/Stand/Gestures/Hey_1)")
-        greet.say("Hello. I'm here to make a delivery.")
+        greet.say("Hello. My name is Nao.")
 
     def farewell(self):
         farewell = ALProxy("ALTextToSpeech", IP, PORT)
@@ -232,19 +231,23 @@ class Nao(ALModule):
 
     def question(self):
         question = ALProxy("ALTextToSpeech", IP, PORT)
-        question.say(QuestionList[0], configuration)
+        question.say(QuestionList[0])
 
     def answer(self, mark):
         answer = ALProxy("ALTextToSpeech", IP, PORT)
-        answer.say(random.choice(handoff_question[mark]))
+        answer.say(random.choice(handoff_answer[mark]))
 
     def instruct(self, instruction):
         instruct = ALProxy("ALTextToSpeech", IP, PORT)
         instruct.say(instruction)
 
-    def repeat(self):
+    def repeatAnswer(self):
         repeat = ALProxy("ALTextToSpeech", IP, PORT)
-        repeat.say("Sorry I did not get it. Can you repeat the question?")
+        repeat.say("Sorry I did not catch that. Can you repeat your answer?")
+
+    def repeatQuestion(self):
+        repeat = ALProxy("ALTextToSpeech", IP, PORT)
+        repeat.say("Sorry I did not catch that. Can you repeat the question?")
 
     def soundDetected(self, sec):
         sound = ALProxy("ALSoundDetection", IP, PORT)
@@ -351,13 +354,13 @@ class Greeter:
                 self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
 
             if newState == "Speaking_Present_Greeting":
-                self.robot.gaze.addBehavior("Greeter", "GAZE_AT", None)
+                self.robot.gaze.addBehavior("Greeter", "GAZE_INTIMACY", None)
                 self.speech_token.acquire()
                 self.robot.greet()
                 self.speech_token.release()
                 newState = "Waiting_Silent_Present"
                 print newState + "\n"
-                self.robot.gaze.killBehavior("Greeter", "GAZE_AT")
+                self.robot.gaze.killBehavior("Greeter", "GAZE_INTIMACY")
 
             elif newState == "Speaking_Ignored_Greeting":
                 self.robot.gaze.addBehavior("Greeter", "GAZE_AT", None)
@@ -423,13 +426,13 @@ class Farewell:
                 self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
 
             if newState == "Speaking_Present_BiddingFarewell":
-                self.robot.gaze.addBehavior("Farewell", "GAZE_AT", None)
+                self.robot.gaze.addBehavior("Farewell", "GAZE_INTIMACY", None)
                 self.speech_token.acquire()
                 self.robot.farewell()
                 self.speech_token.release()
                 newState = "Wait_Silent_Present"
                 print newState + "\n"
-                self.robot.gaze.killBehavior("Farewell", "GAZE_AT")
+                self.robot.gaze.killBehavior("Farewell", "GAZE_INTIMACY")
 
             elif newState == "Speaking_Ignored_BiddingFarewell":
                 self.robot.gaze.addBehavior("Farewell", "GAZE_AT", None)
@@ -458,12 +461,14 @@ class Farewell:
         out_list.append(output)
 
 class Comment:
-    def __init__(self, robot, groupid, microid, speechList, speech_token):
+    def __init__(self, robot, groupid, microid, speech, gesture, speech_token):
         self.robot = robot
         self.groupid = groupid
         self.microid = microid
-        self.speechList = speechList
+        self.speech = speech
+        self.gesture = gesture
         self.speech_token = speech_token
+        print "GESTURE IS {}".format(self.gesture)
 
     def getGroup(self):
         return self.groupid
@@ -487,6 +492,10 @@ class Comment:
                 if newState == "Speaking_Present_Asking":
 
                     self.robot.gaze.addBehavior("Comment", "GAZE_INTIMACY", None)
+                    if self.gesture:
+                        self.robot.gesture.addBehavior("Comment", "GESTURE_BEAT")
+                    else:
+                        self.robot.gesture.addBehavior("Comment", "GESTURE_NONE")
                     self.speech_token.acquire()
                     #t1 = threading.Thread(target=robot.comment, args=(self.speechList[0], ))
                     #t2 = threading.Thread(target=robot.gaze_intimacy, args=())
@@ -498,13 +507,19 @@ class Comment:
                     #   if t1.isAlive() != True:
                     #        flag = False
                     #        self.robot.gaze_at_human()
-                    self.robot.comment(speechList[0])
+                    self.robot.comment(self.speech)
                     self.speech_token.release()
                     self.robot.gaze.killBehavior("Comment", "GAZE_INTIMACY")
+                    if self.gesture:
+                        self.robot.gesture.killBehavior("Comment", "GESTURE_BEAT")
+                    else:
+                        self.robot.gesture.killBehavior("Comment", "GESTURE_NONE")
 
                     self.robot.gaze.addBehavior("Comment", "GAZE_AT", None)
+                    self.robot.gesture.addBehavior("Comment", "GESTURE_NONE")
                     newState = "Silent_Present_End"
                     self.robot.gaze.killBehavior("Comment", "GAZE_AT")
+                    self.robot.gesture.killBehavior("Comment", "GESTURE_NONE")
                     print newState + "\n"
                     output = "human_ready"
                     break
@@ -520,6 +535,10 @@ class Comment:
                 if newState == "Speaking_Busy_Asking":
 
                     self.robot.gaze.addBehavior("Comment", "GAZE_INTIMACY", None)
+                    if self.gesture:
+                        self.robot.gesture.addBehavior("Comment", "GESTURE_BEAT")
+                    else:
+                        self.robot.gesture.addBehavior("Comment", "GESTURE_NONE")
                     self.speech_token.acquire()
                     #t1 = threading.Thread(target=robot.comment, args=(self.speechList[0], ))
                     #t2 = threading.Thread(target=robot.gaze_intimacy, args=())
@@ -532,15 +551,21 @@ class Comment:
                     #    if t1.isAlive() != True:
                     #        flag = False
                     #        self.robot.gaze_at_human()
-                    self.robot.comment(speechList[0])
+                    self.robot.comment(self.speech)
                     self.speech_token.release()
                     self.robot.gaze.killBehavior("Comment", "GAZE_INTIMACY")
+                    if self.gesture:
+                        self.robot.gesture.killBehavior("Comment", "GESTURE_BEAT")
+                    else:
+                        self.robot.gesture.killBehavior("Comment", "GESTURE_NONE")
 
                     self.robot.gaze.addBehavior("Comment", "GAZE_AT", None)
+                    self.robot.gesture.addBehavior("Comment", "GESTURE_NONE")
                     newState = "Silent_End_Busy"
                     print newState + "\n"
                     output = "human_busy"
                     self.robot.gaze.killBehavior("Comment", "GAZE_AT")
+                    self.robot.gesture.killBehavior("Comment", "GESTURE_NONE")
                     break
 
             elif last_final_state is None or last_final_state == "human_ignore":
@@ -554,6 +579,10 @@ class Comment:
                 if newState == "Speaking_Ignored_Asking":
 
                     self.robot.gaze.addBehavior("Comment", "GAZE_INTIMACY", None)
+                    if self.gesture:
+                        self.robot.gesture.addBehavior("Comment", "GESTURE_BEAT")
+                    else:
+                        self.robot.gesture.addBehavior("Comment", "GESTURE_NONE")
                     self.speech_token.acquire()
                     #t1 = threading.Thread(target=robot.comment, args=(self.speechList[0], ))
                     #t2 = threading.Thread(target=robot.gaze_intimacy, args=())
@@ -565,15 +594,21 @@ class Comment:
                     #    if t1.isAlive() != True:
                     #        flag = False
                     #        self.robot.gaze_at_human()
-                    self.robot.comment(speechList[0])
+                    self.robot.comment(self.speech)
                     self.speech_token.release()
                     self.robot.gaze.killBehavior("Comment", "GAZE_INTIMACY")
+                    if self.gesture:
+                        self.robot.gesture.killBehavior("Comment", "GESTURE_BEAT")
+                    else:
+                        self.robot.gesture.killBehavior("Comment", "GESTURE_NONE")
 
                     self.robot.gaze.addBehavior("Comment", "GAZE_AT", None)
+                    self.robot.gesture.addBehavior("Comment", "GESTURE_NONE")
                     newState = "Silent_Ignored_End"
                     print newState + "\n"
                     output = "human_ignore"
                     self.robot.gaze.killBehavior("Comment", "GAZE_AT")
+                    self.robot.gesture.killBehavior("Comment", "GESTURE_NONE")
                     break
         out_list.append(output)
 
@@ -767,11 +802,12 @@ class Handoff:
         out_list.append(output)
 
 class Question:
-    def __init__(self, robot, groupid, microid, speech_token):
+    def __init__(self, robot, groupid, microid, speech_token, AnswerList):
         self.groupid = groupid
         self.microid = microid
         self.robot = robot
         self.speech_token = speech_token
+        self.AnswerList = AnswerList
 
     def getGroup(self):
         return self.groupid
@@ -785,42 +821,66 @@ class Question:
 
         while True:
             if StartState == "Start_Silent_Present_H_Silent":
+                self.robot.gaze.addBehavior("Ask", "GAZE_AT")
+                #self.robot.gesture.addBehavior("Ask", "GESTURE_NONE")
                 print StartState + "\n"
                 newState = "Speaking_Present_H_Silent_Asking"
                 print newState + "\n"
+                self.robot.gaze.killBehavior("Ask", "GAZE_AT")
+                #self.robot.gesture.killBehavior("Ask", "GESTURE_NONE")
 
             if newState == "Speaking_Present_H_Silent_Asking":
+                self.robot.gaze.addBehavior("Ask", "GAZE_AT")
+                self.robot.gesture.addBehavior("Ask", "GESTURE_BEAT")
                 self.speech_token.acquire()
                 self.robot.question()
                 self.speech_token.release()
                 newState = "Silent_Present_Listening_H_Silent"
+                self.robot.gaze.killBehavior("Ask", "GAZE_AT")
+                self.robot.gesture.killBehavior("Ask", "GESTURE_BEAT")
 
-            while Ture:
+            while True:
                 if newState == "Silent_Present_Listening_H_Silent":
+                    self.robot.gaze.addBehavior("Ask", "GAZE_AT")
+                    self.robot.gesture.addBehavior("Ask", "GESTURE_NONE")
                     print newState + "\n"
                     val = self.robot.speechRecognition(wait_time)
-                    if val is None:
+                    if val is None or val == "":
                         newState = "Silent_Ignored_H_Silent_End"
                         print newState + "\n"
+                        self.robot.gaze.killBehavior("Ask", "GAZE_AT")
+                        self.robot.gesture.killBehavior("Ask", "GESTURE_NONE")
                         break
                     else:
                         newState = "Silent_Listening_H_Speaking_Answering"
+                        self.robot.gaze.killBehavior("Ask", "GAZE_AT")
+                        #self.robot.gesture.killBehavior("Ask", "GESTURE_NONE")
                         print newState + "\n"
 
                     if newState == "Silent_Listening_H_Speaking_Answering":
-                        if val in AnswerList:
+                        self.robot.gaze.addBehavior("Ask", "GAZE_AT")
+                        #self.robot.gesture.addBehavior("Ask", "GESTURE_NONE")
+                        if val in self.AnswerList:
                             newState = "Silent_Present_Listening_H_Silent"
                             print newState + "\n"
                             newState = "Silent_Present_H_Silent_End"
                             print newState + "\n"
+                            self.robot.gaze.killBehavior("Ask", "GAZE_AT")
+                            #self.robot.gesture.killBehavior("Ask", "GESTURE_NONE")
                             break
-                        elif val not in AnswerList:
+                        elif val not in self.AnswerList:
                             newState = "Silent_Present_Listening_H_Silent"
+                            self.robot.gaze.killBehavior("Ask", "GAZE_AT")
+                            #self.robot.gesture.killBehavior("Ask", "GESTURE_NONE")
                             print newState + "\n"
                             newState = "Speaking_RepeatAsk_Present_H_Silent"
                             print newState + "\n"
-                            self.robot.repeat()
+                            self.robot.gaze.addBehavior("Ask", "GAZE_AT")
+                            self.robot.gesture.addBehavior("Ask", "GESTURE_BEAT")
+                            self.robot.repeatAnswer()
                             newState = "Silent_Present_Listening_H_Silent"
+                            self.robot.gaze.killBehavior("Ask", "GAZE_AT")
+                            self.robot.gesture.killBehavior("Ask", "GESTURE_BEAT")
 
             if newState == "Silent_Ignored_H_Silent_End":
                 output = "human_ignore"
@@ -875,7 +935,7 @@ class Question:
         out_list.append(output)
 
 class Answer:
-    def __int__(self, robot, groupid, microid, speech_token):
+    def __init__(self, robot, groupid, microid, speech_token):
         self.groupid = groupid
         self.microid = microid
         self.robot = robot
@@ -887,78 +947,101 @@ class Answer:
     def getID(self):
         return self.microid
 
-    def execute(self, last_final_state):
+    def execute(self, last_final_state, out_list):
         startState_Present = "Start_Silent_Present_H_Silent"
         startState_Ignored = "Start_Silent_Ignored_H_Silent"
         startState_Busy = "Start_Silent_Busy_H_Silent"
-        wait_time = 5
+        wait_time = 1000
         newState = None
         mark = None
-        if last_final_state == None or last_final_state == "human_ready":
-            print startState_Present + "\n"
-            val = self.robot.speechRecognition(wait_time)
-            key = False
-            for i in range(len(handoff_question)):
-                for j in range(len(handoff_question[i])):
-                    if val == handoff_question[i][j]:
-                        key = True
-                        mark = i
-                        newState = "Start_Silent_H_Speaking_Asking"
-                        print newState + "\n"
-            if key == False:
-                newState = "Silent_Present_H_Silent_End"
+        while True: 
+            if last_final_state == None or last_final_state == "human_ready" or newState == "Start_Silent_H_Speaking_Asking":
+                print startState_Present + "\n"
+                val = self.robot.speechRecognition(wait_time)
+                key = False
+                for i in range(len(handoff_question)):
+                    for j in range(len(handoff_question[i])):
+                        if val == handoff_question[i][j]:
+                            key = True
+                            mark = i
+                            newState = "Start_Silent_Present_H_Silent"
+                            print newState + "\n"
+                if key == False:
+                    newState = "Start_Silent_Present_H_Silent_prerepeat"
+                    print newState + "\n"
+                    output = "human_ready"
+
+            if last_final_state == "human_ignored":
+                print startState_Ignored + "\n"
+                val = self.robot.speechRecognition(wait_time)
+                key = False
+                for i in range(len(handoff_question)):
+                    for j in range(len(handoff_question[i])):
+                        if val == handoff_question[i][j]:
+                            key = True
+                            mark = i
+                            newState = "Start_Silent_Present_H_Silent"
+                            print newState + "\n"
+                if key == False:
+                    newState = "Start_Silent_Present_H_Silent_prerepeat"
+                    print newState + "\n"
+                    output = "human_ignored"
+
+            if last_final_state == "human_busy":
+                print startState_Busy + "\n"
+                val = self.robot.speechRecognition(wait_time)
+                key = False
+                for i in range(len(handoff_question)):
+                    for j in range(len(handoff_question[i])):
+                        if val == handoff_question[i][j]:
+                            key = True
+                            mark = i
+                            newState = "Start_Silent_Present_H_Silent"
+                            print newState + "\n"
+                if key == False:
+                    newState = "Start_Silent_Present_H_Silent_prerepeat"
+                    print newState + "\n"
+                    output = "human_busy"
+
+            if newState == "Start_Silent_Present_H_Silent_prerepeat":
+                newState = "Speaking_Present_H_Silent_AskForRepeat"
                 print newState + "\n"
+
+            if newState == "Speaking_Present_H_Silent_AskForRepeat":
+                self.robot.gaze.addBehavior("Answer", "GAZE_INTIMACY")
+                self.robot.gesture.addBehavior("Answer", "GESTURE_BEAT")
+                self.robot.repeatAnswer()
+                self.robot.gaze.killBehavior("Answer", "GAZE_INTIMACY")
+                self.robot.gesture.killBehavior("Answer", "GESTURE_BEAT")
+                newState = "Start_Silent_Present_H_Silent_postrepeat"
+
+            if newState == "Start_Silent_Present_H_Silent_postrepeat":
+                newState = "Start_Silent_H_Speaking_Asking"
+
+            if newState == "Start_Silent_Present_H_Silent":
+                newState = "Speaking_Present_H_Silent_Answering"
+
+            if newState == "Speaking_Present_H_Silent_Answering":
+                self.robot.gaze.addBehavior("Answer", "GAZE_COGNITIVE")
+                time.sleep(1)
+                self.robot.gesture.addBehavior("Answer", "GESTURE_BEAT")
+                self.speech_token.acquire()
+                self.robot.answer(mark)
+                self.speech_token.release()
+                newState = "Start_Silent_H_Silent_End"
+                print newState + "\n"
+                self.robot.gaze.killBehavior("Answer", "GAZE_COGNITIVE")
+                self.robot.gesture.killBehavior("Answer", "GESTURE_BEAT")
+
+            if newState == "Start_Silent_H_Silent_End":
+                self.robot.gaze.addBehavior("Answer", "GAZE_AT")
+                self.robot.gesture.addBehavior("Answer", "GESTURE_NONE")
+                print 1
                 output = "human_ready"
-
-        if last_final_state == "human_ignored":
-            print startState_Ignored + "\n"
-            val = self.robot.speechRecognition(wait_time)
-            key = False
-            for i in range(len(handoff_question)):
-                for j in range(len(handoff_question[i])):
-                    if val == handoff_question[i][j]:
-                        key = True
-                        mark = i
-                        newState = "Start_Silent_H_Speaking_Asking"
-                        print newState + "\n"
-            if key == False:
-                newState = "Silent_Present_H_Silent_End"
-                print newState + "\n"
-                output = "human_ignored"
-
-        if last_final_state == "human_busy":
-            print startState_Busy + "\n"
-            val = self.robot.speechRecognition(wait_time)
-            key = False
-            for i in range(len(handoff_question)):
-                for j in range(len(handoff_question[i])):
-                    if val == handoff_question[i][j]:
-                        key = True
-                        mark = i
-                        newState = "Start_Silent_H_Speaking_Asking"
-                        print newState + "\n"
-            if key == False:
-                newState = "Silent_Present_H_Silent_End"
-                print newState + "\n"
-                output = "human_busy"
-
-        if newState == "Start_Silent_H_Speaking_Asking":
-            newState = "Start_Silent_Present_H_Silent"
-            print newState + "\n"
-
-        if newState == "Start_Silent_Present_H_Silent":
-            newState = "Speaking_Present_H_Silent_Answering"
-            print newState + "\n"
-
-        if newState == "Speaking_Present_H_Silent_Answering":
-            self.speech_token.acquire()
-            self.robot.answer(mark)
-            self.speech_token.release()
-            newState = "Start_Silent_Present_H_Silent"
-            print newState + "\n"
-
-        if newState == "Start_Silent_Present_H_Silent":
-            print 1
+                self.robot.gaze.killBehavior("Answer", "GAZE_AT")
+                self.robot.gesture.killBehavior("Answer", "GESTURE_NONE")
+                break
+        out_list.append(output)
 
 class Instruct:
     def __init__(self, robot, groupid, microid, speech_token, instruction):
@@ -1007,7 +1090,7 @@ class Instruct:
                 if val == "I have a question":
                     newState = "Waiting_Silent_H_Speaking_Breakdown_request"
                     print newState + "\n"
-                elif val == "I am finished":
+                elif val == "I am ready":
                     newState = "Waiting_Silent_H_Silent_Finish"
                     print newState + "\n"
                 else:
@@ -1042,12 +1125,14 @@ class Instruct:
         out_list.append(output)
 
 class Wait:
-    def __init__(self, robot, groupid, microid, speechRecog, waitTime):
+    def __init__(self, robot, groupid, microid, speechRecog, waitTime, signal):
         self.robot = robot
         self.groupid = groupid
         self.microid = microid
         self.speechRecog = speechRecog
         self.waitTime = waitTime
+        self.signal = signal
+        print "SIGNAL: {}".format(self.signal)
 
         if self.speechRecog == None:
             self.speechRecog = False
@@ -1070,6 +1155,13 @@ class Wait:
         while True:
             if last_final_state == "human_ready":
                 print startState_Present + "\n"
+
+                self.robot.gaze.addBehavior("Wait", "GAZE_AT")
+                if self.signal:
+                    self.robot.gesture.addBehavior("Wait", "GESTURE_SIGNAL")
+                else:
+                    self.robot.gesture.addBehavior("Wait", "GESTURE_NONE")
+
                 if self.speechRecog and robot.speechRecognition(wait_time) == "I am ready":
                     newState = "Start_Speech_Notify"
                 else:
@@ -1077,6 +1169,13 @@ class Wait:
                     newState = "Silent_Present_End"
                     output = "human_ready"
                 print newState + "\n"
+
+                self.robot.gaze.killBehavior("Wait", "GAZE_AT")
+                if self.signal:
+                    self.robot.gesture.killBehavior("Wait", "GESTURE_SIGNAL")
+                else:
+                    self.robot.gesture.killBehavior("Wait", "GESTURE_NONE")
+
                 break
 
             elif last_final_state == "human_busy":
@@ -1092,6 +1191,13 @@ class Wait:
 
             elif last_final_state == None or last_final_state == "human_ignore":
                 print startState_Ignored + "\n"
+
+                self.robot.gaze.addBehavior("Wait", "GAZE_AT")
+                if self.signal:
+                    self.robot.gesture.addBehavior("Wait", "GESTURE_SIGNAL")
+                else:
+                    self.robot.gesture.addBehavior("Wait", "GESTURE_NONE")
+
                 if self.speechRecog and robot.speechRecognition(wait_time) == "I am ready":
                     newState = "Start_Speech_Notify"
                 else:
@@ -1099,6 +1205,13 @@ class Wait:
                     newState = "Silent_Ignored_End"
                     output = "human_ignore"
                 print newState + "\n"
+
+                self.robot.gaze.killBehavior("Wait", "GAZE_AT")
+                if self.signal:
+                    self.robot.gesture.killBehavior("Wait", "GESTURE_SIGNAL")
+                else:
+                    self.robot.gesture.killBehavior("Wait", "GESTURE_NONE")
+
                 break
 
             if newState == "Start_Speech_Notify":
@@ -1146,7 +1259,7 @@ if __name__ == "__main__":
     answer = []
     handoff_question = []
     handoff_answer = []
-    question_tree = ET.parse('handoff_questions.xml')
+    question_tree = ET.parse('software_tutorial_questions.xml')
     quesiton_root = question_tree.getroot()
     for pair in quesiton_root.iterfind('pair'):
         question = []
@@ -1220,7 +1333,8 @@ if __name__ == "__main__":
                 interaction[groupid - 1].append(farewell)
 
             # questioning
-            if name.text == "Questioning":
+            if name.text == "Ask":
+                AnswerList = []
                 for para in elem.iterfind('parameter'):
                     for word in para.iterfind('item'):
                         wordList.append(word.attrib['val'])
@@ -1228,7 +1342,7 @@ if __name__ == "__main__":
                         linkList.append(word.attrib['link'])
                     if para.text == "question":
                         QuestionList.append(para.attrib['val'])
-                question = Question(robot, groupid, microid, speech_token)
+                question = Question(robot, groupid, microid, speech_token, AnswerList)
                 interaction[groupid - 1].append(question)
 
             # handoff
@@ -1244,12 +1358,17 @@ if __name__ == "__main__":
                 interaction[groupid - 1].append(handoff)
 
             # comment
-            if name.text == "Comment":
-                speechList = []
+            if name.text == "Remark":
+                speech = ""
+                gesture = False
                 for para in elem.iterfind('parameter'):
                     if para.text == "content":
-                        speechList.append(para.attrib['val'])
-                comment = Comment(robot, groupid, microid, speechList, speech_token)
+                        speech = para.attrib['val']
+                    if para.text == "use_gesture":
+                        if para.attrib['val'] == "true":
+                            gesture = True
+
+                comment = Comment(robot, groupid, microid, speech, gesture, speech_token)
                 interaction[groupid - 1].append(comment)
 
             # instruction
@@ -1262,7 +1381,7 @@ if __name__ == "__main__":
                 interaction[groupid - 1].append(instruct)
 
             # answering
-            if name.text == "Answering":
+            if name.text == "Answer":
                 answer = Answer(robot, groupid, microid, speech_token)
                 interaction[groupid - 1].append(answer)
 
@@ -1270,6 +1389,7 @@ if __name__ == "__main__":
             if name.text == "Wait":
                 speechRecog = None
                 waitTime = 5
+                signal = False
                 for para in elem.iterfind('parameter'):
                     if para.text == "allow_speech":
                         if para.attrib['val'] == "true":
@@ -1278,7 +1398,7 @@ if __name__ == "__main__":
                             speechRecog == False
                     if para.text == "wait time (seconds)":
                         waitTime = int(para.attrib['val'])
-                wait = Wait(robot, groupid, microid, speechRecog, waitTime)
+                wait = Wait(robot, groupid, microid, speechRecog, waitTime, signal)
                 interaction[groupid - 1].append(wait)
             microid += 1
         groupid += 1
